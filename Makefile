@@ -1,7 +1,7 @@
-load.dll:
-	gcc -shared load.c -o load.dll
+example.dll:
+	gcc -shared example.c -o example.dll
 
 
 .PHONY: clean
 clean:
-	rm load.dll
+	rm example.dll

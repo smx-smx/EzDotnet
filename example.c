@@ -2,15 +2,29 @@
  * Copyright 2019 Stefano Moioli <smxdev4@gmail.com>
  **/
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <windows.h>
 
+#ifndef DEBUG_MODE
 #define DEBUG_MODE 0
+#endif
 
+#ifndef LDR_DLL
 #define LDR_DLL "ldr.dll"
+#endif
+
+#ifndef TARGET_ASM
 #define TARGET_ASM "Example.dll"
+#endif
+
+#ifndef TARGET_ASM_CLASS
 #define TARGET_ASM_CLASS "Example"
+#endif
+
+#ifndef TARGET_ASM_FUNC
 #define TARGET_ASM_FUNC "Main"
+#endif
 
 typedef int (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
 typedef int (*runMethodFunc)(size_t handle, const char *typeName, const char *methodName);
@@ -42,8 +56,8 @@ int go(){
 
 	TCHAR buf[255];
 	GetCurrentDirectory(sizeof(buf), buf);
-	
-	printf("calling clrInit, pwd: %s\n", buf);
+
+	printf("calling clrInit, pwd: %s, asm: %s\n", buf, TARGET_ASM);
 	size_t handle = clrInit(TARGET_ASM, buf, DEBUG_MODE);
 	
 	printf("calling runMethod, handle: %lu\n", handle);
@@ -51,14 +65,13 @@ int go(){
 	return 0;
 }
 
-DWORD WINAPI sleepAndGo(LPVOID param){
-	Sleep(1000);
+DWORD WINAPI threadedGo(LPVOID param){
 	return go();
 }
 
 void deferredGo(){
 	DWORD dwThreadId;
-	HANDLE hThread = CreateThread(NULL, 0, sleepAndGo, NULL, 0, &dwThreadId);
+	HANDLE hThread = CreateThread(NULL, 0, threadedGo, NULL, 0, &dwThreadId);
 
 	if(hThread == NULL){
 		fputs("thread creation failed", stderr);
@@ -72,7 +85,7 @@ BOOL WINAPI DllMain(
 {
     switch( fdwReason ) 
     { 
-        case DLL_PROCESS_ATTACH:
+        case DLL_PROCESS_ATTACH:;
 			#ifdef DEFERRED_LOAD
 			deferredGo();
 			#else
