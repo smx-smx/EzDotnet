@@ -1,17 +1,15 @@
-#include "pch.h"
-
 using namespace System;
 using namespace System::Reflection;
 using namespace System::Runtime::CompilerServices;
 using namespace System::Runtime::InteropServices;
 using namespace System::Security::Permissions;
 
-[assembly:AssemblyTitleAttribute(L"ldr")];
+[assembly:AssemblyTitleAttribute(L"CLRHost")];
 [assembly:AssemblyDescriptionAttribute(L"")];
 [assembly:AssemblyConfigurationAttribute(L"")];
 [assembly:AssemblyCompanyAttribute(L"")];
-[assembly:AssemblyProductAttribute(L"ldr")];
-[assembly:AssemblyCopyrightAttribute(L"Copyright (c)  2019")];
+[assembly:AssemblyProductAttribute(L"CLRHost")];
+[assembly:AssemblyCopyrightAttribute(L"Copyright (c) Stefano Moioli 2019")];
 [assembly:AssemblyTrademarkAttribute(L"")];
 [assembly:AssemblyCultureAttribute(L"")];
 
