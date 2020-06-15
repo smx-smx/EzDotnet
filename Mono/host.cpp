@@ -1,8 +1,8 @@
 /**
  * Copyright (C) 2019 Stefano Moioli <smxdev4@gmail.com>
  */
-#include <stdio.h>
-#include <stdbool.h>
+#include <cstdio>
+#include <cstdbool>
 #include <mono/jit/jit.h>
 #include <mono/metadata/mono-config.h>
 #include <mono/metadata/assembly.h>
@@ -11,6 +11,7 @@
 #include <mono/metadata/mono-gc.h>
 #include <mono/utils/mono-error.h>
 
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <filesystem>
@@ -35,15 +36,12 @@
 #define DPRINTF(fmt, ...)
 #endif
 
-
-#define TARGET_ASSEMBLY "KodiInterop"
-#define FN_GETPLUGINMAIN "KodiBridgeABI:GetPluginMainFunc"
-#define FN_GETINITIALIZE "KodiBridgeABI:GetInitializeFunc"
-#define FN_GETPOSTEVENT "KodiBridgeABI:GetPostEventFunc"
-
-
-#if !defined(_WIN32) && !defined(__cdecl)
-#define __cdecl __attribute__((__cdecl__))
+#ifdef __i386__
+  #if !defined(_WIN32) && !defined(__cdecl)
+  #define __cdecl __attribute__((__cdecl__))
+  #endif
+#else
+  #define __cdecl
 #endif
 
 static MonoMethod *imageFindMethod(MonoImage *image, const char *methodName) {
@@ -71,15 +69,13 @@ private:
 public:
 	MonoDomain *appDomain;
 
-	int runMethod(const char *className, const char *methodName){
+	int runMethod(const char *methodDesc){
 		MonoThread *thread = mono_thread_attach(appDomain);
-
-		std::string monoMethodName = std::string(className) + ":" + std::string(methodName);
 
 		bool methodInvoked = false;
 
 		void *pUserData[] = {
-			(void *)monoMethodName.c_str(),
+			(void *)methodDesc,
 			(void *)m_asmName,
 			(void *)&methodInvoked
 		};
@@ -95,7 +91,7 @@ public:
 
 			MonoAssembly *refAsm = (MonoAssembly *)refAsmPtr;
 			const char *asmName = mono_assembly_name_get_name(mono_assembly_get_name(refAsm));
-			if(strcmp(asmName, m_asmName) != 0)
+			if(std::strcmp(asmName, m_asmName) != 0)
 				return;
 
 			MonoImage *refAsmImage = mono_assembly_get_image(refAsm);
@@ -111,11 +107,11 @@ public:
 			MonoObject *exception = nullptr;
 			void **args = nullptr;
 			MonoObject *ret = mono_runtime_invoke(method, nullptr, args, &exception);
-			
+
 			*pMethodInvoked = true;
 
 			if (exception) {
-				mono_print_unhandled_exception(exception);	
+				mono_print_unhandled_exception(exception);
 			}
 		}, pUserData);
 
@@ -273,7 +269,7 @@ extern "C" {
 		for (int i = 0; i < numAssemblies; i++) {
 			mono_assembly_load_reference(image, i);
 		}
-		
+
 		gPlugins.emplace(handle, PluginInstanceData(newDomain, pluginAsm));
 		return handle;
 	}
@@ -296,8 +292,8 @@ extern "C" {
 	 * These are C bindings to C# methods.
 	 * Calling any of the methods below will call the respective C# method in the loaded assembly
 	 */
-	DLLEXPORT int __cdecl runMethod(PLGHANDLE handle, const char *typeName, const char *methodName) {
+	DLLEXPORT int __cdecl runMethod(PLGHANDLE handle, const char *methodDesc) {
 		DPRINTF("\n");
-		return gPlugins.at(handle).runMethod(typeName, methodName);
+		return gPlugins.at(handle).runMethod(methodDesc);
 	}
 }
