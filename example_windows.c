@@ -26,8 +26,10 @@
 #define TARGET_ASM_FUNC "Main"
 #endif
 
-typedef int (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
-typedef int (*runMethodFunc)(size_t handle, const char *typeName, const char *methodName);
+typedef size_t PLGHANDLE;
+
+typedef PLGHANDLE (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
+typedef int (*runMethodFunc)(PLGHANDLE handle, const char *typeName, const char *methodName);
 
 int go(){
 	AllocConsole();
@@ -58,9 +60,9 @@ int go(){
 	GetCurrentDirectory(sizeof(buf), buf);
 
 	printf("calling clrInit, pwd: %s, asm: %s\n", buf, TARGET_ASM);
-	size_t handle = clrInit(TARGET_ASM, buf, DEBUG_MODE);
+	PLGHANDLE handle = clrInit(TARGET_ASM, buf, DEBUG_MODE);
 	
-	printf("calling runMethod, handle: %lu\n", handle);
+	printf("calling runMethod, handle: %zu\n", handle);
 	runMethod(handle, TARGET_ASM_CLASS, TARGET_ASM_FUNC);
 	return 0;
 }
