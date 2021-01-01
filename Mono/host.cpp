@@ -198,7 +198,7 @@ extern "C" {
 	 * These are C bindings to C# methods.
 	 * Calling any of the methods below will call the respective C# method in the loaded assembly
 	 */
-	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *typeName, const char *methodName	) {
+	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *typeName, const char *methodName) {
 		DPRINTF("\n");
 		return gPlugins.at(handle).runMethod(typeName, methodName);
 	}

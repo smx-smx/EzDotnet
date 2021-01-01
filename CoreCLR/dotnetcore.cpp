@@ -22,26 +22,46 @@
 
 #include "common/common.h"
 
+template<typename TTo, typename TFrom>
+static std::basic_string<TTo> str_conv(std::basic_string<TFrom> str){
+	size_t length = str.length();
+	const TFrom* data = str.data();
+	return std::basic_string<TTo>(data, data + length);
+}
+
+template <typename TTo>
+static std::basic_string<TTo> str_conv(const char *str){
+	return str_conv<TTo, char>(std::string(str));
+}
+
 struct PluginInstance {
 private:
-	std::string m_asmPath;
+	std::basic_string<char_t> m_asmPath;
 	load_assembly_and_get_function_pointer_fn m_loadAssembly;
 public:
 
-	PluginInstance(std::string asmPath, load_assembly_and_get_function_pointer_fn pfnLoadAssembly)
+	PluginInstance(std::basic_string<char_t> asmPath, load_assembly_and_get_function_pointer_fn pfnLoadAssembly)
 		: m_asmPath(asmPath), m_loadAssembly(pfnLoadAssembly){}
 
-	int runMethod(const char *methodDesc) {
-		std::string desc(methodDesc);
-		
-		size_t sepIdx = desc.find(':');
-		std::string targetClassName = desc.substr(0, sepIdx);
-		std::string targetMethodName = desc.substr(sepIdx + 1);
+	int runMethod(const char *typeName, const char *methodName) {
+		std::basic_string<char_t> targetMethodName = ::str_conv<char_t>(methodName);
+
+		std::basic_string<char_t> assemblyName = std::filesystem::path(m_asmPath)
+													.filename()
+													.replace_extension()
+													.string<char_t>();
+
+		// HelloWorld.EntryPoint,HelloWorld <-- namespace.type, assembly
+		std::basic_string<char_t> targetClassName = ::str_conv<char_t>(typeName)
+												+ ::str_conv<char_t>(",")
+												+ assemblyName;
 
 		component_entry_point_fn pfnEntry = nullptr;
 
 		DPRINTF("Loading '%s', then running %s in %s\n",
-			m_asmPath.c_str(), targetMethodName.c_str(), targetClassName.c_str()
+			::str_conv<char>(m_asmPath).c_str(),
+			::str_conv<char>(targetMethodName).c_str(),
+			::str_conv<char>(targetClassName).c_str()
 		);
 		m_loadAssembly(
 			m_asmPath.c_str(),
@@ -52,7 +72,9 @@ public:
 			(void **)&pfnEntry);
 
 		if (pfnEntry == nullptr) {
-			DPRINTF("Failed to locate '%s:%s'\n", targetClassName, targetMethodName);
+			DPRINTF("Failed to locate '%s:%s'\n",
+				::str_conv<char>(targetClassName).c_str(),
+				::str_conv<char>(targetMethodName).c_str());
 			return -1;
 		}
 		
@@ -63,9 +85,9 @@ public:
 
 struct dotnet_init_params {
 	const char *hostfxr_path;
-	const char *runtimeconfig_path;
-	const char *host_path;
-	const char *dotnet_root;
+	const char_t *runtimeconfig_path;
+	const char_t *host_path;
+	const char_t *dotnet_root;
 };
 
 
@@ -74,8 +96,6 @@ static std::map<ASMHANDLE, PluginInstance> gPlugins;
 static hostfxr_handle runtimeHandle = nullptr;
 static load_assembly_and_get_function_pointer_fn pfnLoadAssembly = nullptr;
 static hostfxr_close_fn pfnClose = nullptr;
-
-
 
 static int initHostFxr(
 	struct dotnet_init_params &initParams,
@@ -140,7 +160,7 @@ extern "C" {
 		const char *assemblyPath, const char *pluginFolder, bool enableDebug
 	){
 		DPRINTF("\n");
-		std::filesystem::path asmPath(assemblyPath);
+		std::filesystem::path asmPath(assemblyPath);	
 		std::filesystem::path asmDir = asmPath.parent_path();
 		
 		std::string pluginName = asmPath.filename().replace_extension().string();
@@ -150,19 +170,26 @@ extern "C" {
 			return handle;
 		}
 
-		if (pfnLoadAssembly == nullptr) {
-			std::filesystem::path hostFxrPath = asmDir / (std::string("libhostfxr") + LIB_SUFFIX);
-			std::filesystem::path runtimeConfigPath = asmPath.replace_extension() / "runtimeconfig.json";
+		if (::pfnLoadAssembly == nullptr) {
+			std::filesystem::path hostFxrPath = asmDir / (
+				std::string(LIB_PREFIX) + "hostfxr" + LIB_SUFFIX
+			);
 
 			hostfxr_initialize_for_runtime_config_fn pfnInitializer = nullptr;
 			hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
 
-			std::string asmDirStr = asmDir.string();
 			std::string hostFxrPathStr = hostFxrPath.string();
-			std::string runtimeConfigPathStr = runtimeConfigPath.string();
+			std::basic_string<char_t> asmDirStr = asmDir.string<char_t>();
+
+			// copy path before removing the extension
+			std::filesystem::path asmBase(asmPath);
+			asmBase.replace_extension();
+
+			std::basic_string<char_t> runtimeConfigPathStr = (
+				asmBase.string<char_t>() + ::str_conv<char_t>(".runtimeconfig.json")
+			);
 
 			dotnet_init_params initParams;
-
 			initParams.hostfxr_path = hostFxrPathStr.c_str();
 			initParams.host_path = asmDirStr.c_str();
 			initParams.dotnet_root = asmDirStr.c_str();	
@@ -173,7 +200,7 @@ extern "C" {
 			}
 		}
 
-		gPlugins.emplace(handle, PluginInstance(asmPath.string(), ::pfnLoadAssembly));
+		gPlugins.emplace(handle, PluginInstance(asmPath.string<char_t>(), ::pfnLoadAssembly));
 		return handle;
 	}
 
@@ -185,8 +212,8 @@ extern "C" {
 		return true;
 	}
 
-	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *methodDesc) {
+	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *typeName, const char *methodName) {
 		DPRINTF("\n");
-		return gPlugins.at(handle).runMethod(methodDesc);
+		return gPlugins.at(handle).runMethod(typeName, methodName);
 	}
 }
