@@ -133,18 +133,6 @@ public:
 
 static std::map<ASMHANDLE, AssemblyInstanceData> gHandles;
 
-
-size_t str_hash(const char* str)
-{
-	unsigned long hash = 5381;
-	int c;
-
-	while (c = *str++)
-		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-	return hash;
-}
-
 extern "C" {
 	typedef char* (*message_callback_t)(const char*);
 	typedef void(*exit_callback_t)();
