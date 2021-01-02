@@ -36,7 +36,7 @@ Runs the method `methodName` inside the class `typeName` given a `handle` to the
 ## Use cases
 
 ### Executable or Library
-You can use this project inside an executable or a shared library.
+You can use this project inside an executable or a library.
 You can either link statically against a single loader or you can load them dynamically, so that the CLR engine to use (CLR/CoreCLR/Mono) can be chosen at runtime
 
 ### Cygwin Interop
@@ -55,4 +55,4 @@ There are several tools and ways to achieve this, for example
 - Detours (Windows library) has an API to spawn a process with a DLL
 - SetSail (Windows: https://github.com/TheAssemblyArmada/SetSail) can inject a DLL at the EXE Entrypoint
 - LD_PRELOAD (Linux, FreeBSD, and others) can be used to preload a library in a executable (at launch time)
-- libhooker (Linux: https://github.com/smx-smx/libhooker) can inject a library in a running executable
+- ezinject (Linux: https://github.com/smx-smx/ezinject) can inject a library in a running executable
