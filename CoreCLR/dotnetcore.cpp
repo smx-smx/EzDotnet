@@ -8,7 +8,7 @@
 
 #define DEBUG
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__CYGWIN__)
 #include <io.h>
 #include <Windows.h>
 #else
@@ -22,6 +22,8 @@
 
 #include "common/common.h"
 
+using fx_string = std::basic_string<char_t>;
+
 template<typename TTo, typename TFrom>
 static std::basic_string<TTo> str_conv(std::basic_string<TFrom> str){
 	size_t length = str.length();
@@ -34,26 +36,54 @@ static std::basic_string<TTo> str_conv(const char *str){
 	return str_conv<TTo, char>(std::string(str));
 }
 
+fx_string operator "" _toNativeString(const char *ptr, size_t size){
+	std::string str(ptr, ptr + size);
+	return str_conv<char_t>(str);
+}
+
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+static fx_string to_native_path(fx_string fx_path){
+	std::string path = ::str_conv<char>(fx_path);
+
+	int flags = CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE;
+	
+	ssize_t size = cygwin_conv_path(flags, path.c_str(), nullptr, 0);
+	if(size < 0){
+		throw "cygwin_conv_path";
+	}
+
+	std::string buf(size, '\0');
+	if(cygwin_conv_path(flags, path.c_str(), buf.data(), size) != 0){
+		throw "cygwin_conv_path";
+	}
+
+	return ::str_conv<char_t>(buf);
+}
+#else
+static std::string to_native_path(fx_string path){ return path; }
+#endif
+
 struct PluginInstance {
 private:
-	std::basic_string<char_t> m_asmPath;
+	fx_string m_asmPath;
 	load_assembly_and_get_function_pointer_fn m_loadAssembly;
 public:
 
-	PluginInstance(std::basic_string<char_t> asmPath, load_assembly_and_get_function_pointer_fn pfnLoadAssembly)
+	PluginInstance(fx_string asmPath, load_assembly_and_get_function_pointer_fn pfnLoadAssembly)
 		: m_asmPath(asmPath), m_loadAssembly(pfnLoadAssembly){}
 
 	int runMethod(const char *typeName, const char *methodName) {
-		std::basic_string<char_t> targetMethodName = ::str_conv<char_t>(methodName);
+		fx_string targetMethodName = ::str_conv<char_t>(methodName);
 
-		std::basic_string<char_t> assemblyName = std::filesystem::path(m_asmPath)
+		fx_string assemblyName = std::filesystem::path(m_asmPath)
 													.filename()
 													.replace_extension()
 													.string<char_t>();
 
 		// HelloWorld.EntryPoint,HelloWorld <-- namespace.type, assembly
-		std::basic_string<char_t> targetClassName = ::str_conv<char_t>(typeName)
-												+ ::str_conv<char_t>(",")
+		fx_string targetClassName = ::str_conv<char_t>(typeName)
+												+ ","_toNativeString
 												+ assemblyName;
 
 		component_entry_point_fn pfnEntry = nullptr;
@@ -64,7 +94,7 @@ public:
 			::str_conv<char>(targetClassName).c_str()
 		);
 		m_loadAssembly(
-			m_asmPath.c_str(),
+			::to_native_path(m_asmPath).c_str(),
 			targetClassName.c_str(),
 			targetMethodName.c_str(),
 			NULL, //-> public delegate int ComponentEntryPoint(IntPtr args, int sizeBytes);
@@ -111,7 +141,10 @@ static int initHostFxr(
 	hostfxr_handle runtimeHandle = nullptr;
 	load_assembly_and_get_function_pointer_fn pfnLoadAssembly = nullptr;
 
-	pfnInitializer(initParams.runtimeconfig_path, &hostfxr_params, &runtimeHandle);
+	pfnInitializer(
+		::to_native_path(initParams.runtimeconfig_path).c_str(),
+		&hostfxr_params, &runtimeHandle
+	);
 	if (runtimeHandle == nullptr) {
 		DPRINTF("Failed to initialize dotnet core\n");
 		return -1;
@@ -179,14 +212,14 @@ extern "C" {
 			hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
 
 			std::string hostFxrPathStr = hostFxrPath.string();
-			std::basic_string<char_t> asmDirStr = asmDir.string<char_t>();
+			fx_string asmDirStr = asmDir.string<char_t>();
 
 			// copy path before removing the extension
 			std::filesystem::path asmBase(asmPath);
 			asmBase.replace_extension();
 
-			std::basic_string<char_t> runtimeConfigPathStr = (
-				asmBase.string<char_t>() + ::str_conv<char_t>(".runtimeconfig.json")
+			fx_string runtimeConfigPathStr = (
+				asmBase.string<char_t>() + ".runtimeconfig.json"_toNativeString
 			);
 
 			dotnet_init_params initParams;

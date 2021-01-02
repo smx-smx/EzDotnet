@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__)
     #define CORECLR_DELEGATE_CALLTYPE __stdcall
     #ifdef _WCHAR_T_DEFINED
         typedef wchar_t char_t;
