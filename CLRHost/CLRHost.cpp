@@ -24,7 +24,47 @@ using namespace System::Threading;
 using namespace System::Runtime::InteropServices;
 using namespace System::Runtime::Remoting;
 
-typedef size_t PLGHANDLE;
+#include "common/common.h"
+
+#include <cstdint>
+#include "cygwin.h"
+
+template<typename F>
+void MyGetProcAddress(HMODULE hmod, const char *name, F &dst) {
+	dst = reinterpret_cast<F>(::GetProcAddress(hmod, name));
+}
+
+static ssize_t (*cygwin_conv_path) (cygwin_conv_path_t what, const void *from, void *to, size_t size) = nullptr;
+
+static void initCygwin() {
+	HMODULE hCygwin = GetModuleHandle("cygwin1");
+	if(hCygwin == nullptr){
+		// not running under cygwin
+		return;
+	}
+
+	MyGetProcAddress(hCygwin, "cygwin_conv_path", cygwin_conv_path);
+}
+
+static std::string to_native_path(std::string path) {
+	if(::cygwin_conv_path == nullptr){
+		return path;
+	}
+
+	int flags = CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE;
+
+	ssize_t size = ::cygwin_conv_path(flags, path.c_str(), nullptr, 0);
+	if (size < 0) {
+		throw "cygwin_conv_path";
+	}
+
+	std::string buf(size, '\0');
+	if (::cygwin_conv_path(flags, path.c_str(), buf.data(), size) != 0) {
+		throw "cygwin_conv_path";
+	}
+
+	return buf;
+}
 
 /**
  * Loads an assembly by looking up the same folder as the executing assembly
@@ -131,7 +171,7 @@ public:
 	}
 };
 
-static std::map<PLGHANDLE, AssemblyInstanceData> gHandles;
+static std::map<ASMHANDLE, AssemblyInstanceData> gHandles;
 
 
 size_t str_hash(const char* str)
@@ -150,7 +190,7 @@ extern "C" {
 	typedef void(*exit_callback_t)();
 
 	__declspec(dllexport)
-		extern int __cdecl runMethod(PLGHANDLE handle, const char* typeName, const char* methodName) {
+		extern int __cdecl runMethod(ASMHANDLE handle, const char* typeName, const char* methodName) {
 
 		if (gHandles.find(handle) == gHandles.end()) {
 			return -1;
@@ -163,27 +203,17 @@ extern "C" {
 		return 0;
 	}
 
-	__declspec(dllexport)
-		extern const PLGHANDLE __cdecl clrInit(
-			const char* assemblyPath, const char* pluginFolder, int enableDebug
-		) {
-		if (enableDebug) {
-			if (!Debugger::IsAttached) {
-				Debugger::Launch();
-			}
-			while (!Debugger::IsAttached) {
-				Thread::Sleep(100);
-			}
-			Debugger::Break();
-		}
-
+	ASMHANDLE initialize(
+		const std::string& assemblyPath,
+		const std::string& assemblyDir
+	) {
 		/**
 		 * Get Paths
 		 */
 		std::filesystem::path asmPath(assemblyPath);
 		std::string pluginName = asmPath.filename().replace_extension().string();
 
-		PLGHANDLE handle = str_hash(pluginName.c_str());
+		ASMHANDLE handle = str_hash(pluginName.c_str());
 
 		if (gHandles.find(handle) != gHandles.end()) {
 			//gPlugins.at(handle).instance->Initialize(IntPtr(cb1), IntPtr(cb2), enableDebug);
@@ -193,11 +223,11 @@ extern "C" {
 		/**
 		 * Create AppDomain
 		 */
-		String^ applicationName = gcnew String(pluginName.c_str());
-		AppDomainSetup^ domainSetup = gcnew AppDomainSetup();
+		String ^applicationName = gcnew String(pluginName.c_str());
+		AppDomainSetup ^domainSetup = gcnew AppDomainSetup();
 		domainSetup->ApplicationName = applicationName;
-		domainSetup->ApplicationBase = gcnew String(pluginFolder);
-		AppDomain^ newDomain = AppDomain::CreateDomain(applicationName, nullptr, domainSetup);
+		domainSetup->ApplicationBase = gcnew String(assemblyDir.c_str());
+		AppDomain ^newDomain = AppDomain::CreateDomain(applicationName, nullptr, domainSetup);
 
 		/**
 		 * Use the Directory we're running from to resolve assemblies (e.g this assembly)
@@ -217,8 +247,8 @@ extern "C" {
 		 * Setup Assembly search paths
 		 */
 
-		String^ thisAsmPath = Assembly::GetExecutingAssembly()->Location;
-		List<String^>^ asmPaths = gcnew List<String^>();
+		String ^thisAsmPath = Assembly::GetExecutingAssembly()->Location;
+		List<String ^> ^asmPaths = gcnew List<String ^>();
 		asmPaths->Add(Path::GetDirectoryName(thisAsmPath));
 
 		std::string asmParent = asmPath.parent_path().string();
@@ -230,11 +260,11 @@ extern "C" {
 		 * Run the PluginLoader on the new appdomain
 		 * We do this by using a Serializable,MarshalByRefObject class, which gets serialized to the new AppDomain and ran there
 		 */
-		array<Object^>^ args = gcnew array<Object^>(2);
+		array<Object ^> ^args = gcnew array<Object ^>(2);
 		args[0] = gcnew String(asmPath.c_str());
 		args[1] = asmPaths;
 
-		AssemblyInstance^ pl = (AssemblyInstance^)newDomain->CreateInstanceFromAndUnwrap(
+		AssemblyInstance ^pl = (AssemblyInstance ^)newDomain->CreateInstanceFromAndUnwrap(
 			thisAsmPath,
 			(AssemblyInstance::typeid)->FullName, false,
 			BindingFlags::Default,
@@ -247,7 +277,31 @@ extern "C" {
 	}
 
 	__declspec(dllexport)
-		extern bool __cdecl clrDeInit(PLGHANDLE handle) {
+		extern const ASMHANDLE __cdecl clrInit(
+			const char* assemblyPath, const char* pluginFolder, int enableDebug
+		) {
+		if (enableDebug) {
+			if (!Debugger::IsAttached) {
+				Debugger::Launch();
+			}
+			while (!Debugger::IsAttached) {
+				Thread::Sleep(100);
+			}
+			Debugger::Break();
+		}
+
+		initCygwin();
+		std::string asmPath(assemblyPath);
+		std::string asmDir(pluginFolder);
+
+		return initialize(
+			::to_native_path(asmPath),
+			::to_native_path(asmDir)
+		);
+	}
+
+	__declspec(dllexport)
+		extern bool __cdecl clrDeInit(ASMHANDLE handle) {
 		AssemblyInstanceData data = gHandles[handle];
 
 		// shouldn't be necessary since we're about to dispose the AppDomain

@@ -1,4 +1,20 @@
 #ifdef __cplusplus
+#include <string>
+
+template<typename TTo, typename TFrom>
+static std::basic_string<TTo> str_conv(std::basic_string<TFrom> str){
+	size_t length = str.length();
+	const TFrom* data = str.data();
+	return std::basic_string<TTo>(data, data + length);
+}
+
+template <typename TTo>
+static std::basic_string<TTo> str_conv(const char *str){
+	return str_conv<TTo, char>(std::string(str));
+}
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 

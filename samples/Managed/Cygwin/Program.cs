@@ -5,8 +5,7 @@ namespace ManagedSample
 {
 	public class EntryPoint
 	{
-
-		public static int Entry(IntPtr args, int sizeBytes){
+		private static int CommonEntry(){
 			using (var stdin = new StreamReader(new CygwinInputStream(0)))
 			using (var stdout = new StreamWriter(new CygwinOutputStream(1)))
 			using (var stderr = new StreamWriter(new CygwinOutputStream(2))) {
@@ -29,7 +28,10 @@ namespace ManagedSample
 			return 0;
 		}
 
-		static void Main(string[] args)
+		public static void EntryCLR() => CommonEntry();
+		public static int EntryCoreCLR(IntPtr args, int sizeBytes) => CommonEntry();
+
+		public static void Main(string[] args)
 		{
 			Console.WriteLine("Hello World!");
 		}
