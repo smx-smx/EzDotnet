@@ -19,7 +19,7 @@ typedef int (*runMethodFunc)(ASMHANDLE handle, const char *typeName, const char 
 #if defined(WIN32) || defined(__CYGWIN__)
 #include <Windows.h>
 #define ENV_PUT(key, val) SetEnvironmentVariable(key, val)
-#define GET_PWD(buf, size) GetCurrentDirectory(buf, size)
+#define GET_PWD(buf, size) GetCurrentDirectory(size, buf)
 #else
 #include <unistd.h>
 #define ENV_PUT(key, val) setenv(key, val, 1)
@@ -51,7 +51,7 @@ int go(
 	}
 
 	char buf[255];
-	GET_PWD(sizeof(buf), buf);
+	GET_PWD(buf, sizeof(buf));
 
 	printf("calling clrInit, pwd: %s, asm: %s\n", buf, asmPath);
 	ASMHANDLE handle = clrInit(asmPath, buf, DEBUG_MODE);
