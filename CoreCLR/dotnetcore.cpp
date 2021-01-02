@@ -162,6 +162,11 @@ extern "C" {
 		const char *assemblyPath, const char *pluginFolder, bool enableDebug
 	){
 		DPRINTF("\n");
+
+		#if defined(WIN32) || defined(__CYGWIN__)
+		initCygwin();
+		#endif
+
 		std::filesystem::path asmPath(assemblyPath);	
 		std::filesystem::path asmDir = asmPath.parent_path();
 		
