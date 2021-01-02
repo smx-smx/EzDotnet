@@ -139,7 +139,6 @@ extern "C" {
 
 	__declspec(dllexport)
 		extern int __cdecl runMethod(ASMHANDLE handle, const char* typeName, const char* methodName) {
-
 		if (gHandles.find(handle) == gHandles.end()) {
 			return -1;
 		}
@@ -161,8 +160,7 @@ extern "C" {
 		std::filesystem::path asmPath(assemblyPath);
 		std::string pluginName = asmPath.filename().replace_extension().string();
 
-		ASMHANDLE handle = str_hash(pluginName.c_str());
-
+		ASMHANDLE handle = str_hash(assemblyPath.c_str());
 		if (gHandles.find(handle) != gHandles.end()) {
 			//gPlugins.at(handle).instance->Initialize(IntPtr(cb1), IntPtr(cb2), enableDebug);
 			return handle;
@@ -225,7 +223,7 @@ extern "C" {
 	}
 
 	__declspec(dllexport)
-		extern const ASMHANDLE __cdecl clrInit(
+		extern const ASMHANDLE APICALL clrInit(
 			const char* assemblyPath, const char* pluginFolder, int enableDebug
 		) {
 		if (enableDebug) {
@@ -249,7 +247,7 @@ extern "C" {
 	}
 
 	__declspec(dllexport)
-		extern bool __cdecl clrDeInit(ASMHANDLE handle) {
+		extern bool APICALL clrDeInit(ASMHANDLE handle) {
 		AssemblyInstanceData data = gHandles[handle];
 
 		// shouldn't be necessary since we're about to dispose the AppDomain
