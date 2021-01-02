@@ -28,7 +28,19 @@ namespace ManagedSample
 		);
 
 		[DllImport("cygwin1", CallingConvention = CallingConvention.Cdecl)]
+		private static extern IntPtr read(int fd, IntPtr buf, IntPtr count);
+
+		[DllImport("cygwin1", CallingConvention = CallingConvention.Cdecl)]
 		private static extern IntPtr write(int fd, IntPtr buf, IntPtr count);
+
+		public static long Read(int fd, byte[] data, int offset, int length) {
+			var gch = GCHandle.Alloc(data, GCHandleType.Pinned);
+			try {
+				return read(fd, gch.AddrOfPinnedObject() + offset, new IntPtr(length)).ToInt64();
+			} finally {
+				gch.Free();
+			}
+		}
 
 		public static long Write(int fd, byte[] data, int offset, int length) {
 			var gch = GCHandle.Alloc(data, GCHandleType.Pinned);
