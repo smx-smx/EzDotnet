@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "common.h"
+
 size_t str_hash(const char *str){
 	unsigned long hash = 5381;
 	int c;

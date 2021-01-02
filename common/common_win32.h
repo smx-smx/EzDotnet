@@ -1,5 +1,8 @@
-#ifndef __COMMON_WIN32_H
-#define __COMMON_WIN32_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdbool.h>
 
@@ -26,4 +29,6 @@ bool launchDebugger();
 
 void initCygwin();
 
+#ifdef __cplusplus
+}
 #endif
