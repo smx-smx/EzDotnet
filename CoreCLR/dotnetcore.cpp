@@ -42,15 +42,19 @@ public:
 	int runMethod(const char *typeName, const char *methodName) {
 		fx_string targetMethodName = ::str_conv<char_t>(methodName);
 
-		fx_string assemblyName = std::filesystem::path(m_asmPath)
-													.filename()
-													.replace_extension()
-													.string<char_t>();
+		fx_string assemblyName = (
+			std::filesystem::path(m_asmPath)
+				.filename()
+				.replace_extension()
+				.string<char_t>()
+		);
 
 		// HelloWorld.EntryPoint,HelloWorld <-- namespace.type, assembly
-		fx_string targetClassName = ::str_conv<char_t>(typeName)
-												+ ","_toNativeString
-												+ assemblyName;
+		fx_string targetClassName = (
+			::str_conv<char_t>(typeName)
+				+ ","_toNativeString
+				+ assemblyName
+		);
 
 		component_entry_point_fn pfnEntry = nullptr;
 
