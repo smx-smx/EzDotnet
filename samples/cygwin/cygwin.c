@@ -52,22 +52,6 @@ int go(
 	return 0;
 }
 
-#if 0
-void save_stack(void *pMem){
-	uintptr_t localBase = (uintptr_t)pMem + sizeof(void *);
-
-	PNT_TIB tib = (PNT_TIB)NtCurrentTeb();
-	uintptr_t stackBase = (uintptr_t)tib->StackBase;
-
-	size_t dumpSize = stackBase - localBase;
-	printf("Dumping %zu bytes\n", dumpSize);
-
-	FILE *hdmp = fopen("stack.bin", "wb");
-	fwrite((void *)localBase, dumpSize, 1, hdmp);
-	fclose(hdmp);
-}
-#endif
-
 #if defined(_WIN32) || defined(__CYGWIN__)
 #define ENV_PUT(key, val) SetEnvironmentVariable(key, val)
 #else
