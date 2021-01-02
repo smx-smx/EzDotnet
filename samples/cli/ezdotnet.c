@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <windows.h>
 
 #include "common/common.h"
 
@@ -16,6 +15,16 @@
 typedef size_t ASMHANDLE;
 typedef ASMHANDLE (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
 typedef int (*runMethodFunc)(ASMHANDLE handle, const char *typeName, const char *methodName);
+
+#if defined(WIN32) || defined(__CYGWIN__)
+#include <Windows.h>
+#define ENV_PUT(key, val) SetEnvironmentVariable(key, val)
+#define GET_PWD(buf, size) GetCurrentDirectory(buf, size)
+#else
+#include <unistd.h>
+#define ENV_PUT(key, val) setenv(key, val, 1)
+#define GET_PWD(buf, size) getcwd(buf, size)
+#endif
 
 int go(
     const char *loaderPath,
@@ -41,8 +50,8 @@ int go(
 		return -1;
 	}
 
-	TCHAR buf[255];
-	GetCurrentDirectory(sizeof(buf), buf);
+	char buf[255];
+	GET_PWD(sizeof(buf), buf);
 
 	printf("calling clrInit, pwd: %s, asm: %s\n", buf, asmPath);
 	ASMHANDLE handle = clrInit(asmPath, buf, DEBUG_MODE);
@@ -51,12 +60,6 @@ int go(
 	runMethod(handle, targetClassName, targetMethodName);
 	return 0;
 }
-
-#if defined(_WIN32) || defined(__CYGWIN__)
-#define ENV_PUT(key, val) SetEnvironmentVariable(key, val)
-#else
-#define ENV_PUT(key, val) setenv(key, val, 1)
-#endif
 
 int main(int argc, char *argv[]){
     char tmp[50];
