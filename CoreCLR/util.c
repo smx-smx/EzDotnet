@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2021 Stefano Moioli <smxdev4@gmail.com>
+ **/
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>

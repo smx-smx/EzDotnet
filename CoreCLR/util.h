@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2021 Stefano Moioli <smxdev4@gmail.com>
+ **/
 #ifndef __UTIL_H
 #define __UTIL_H
 

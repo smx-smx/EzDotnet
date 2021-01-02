@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Stefano Moioli <smxdev4@gmail.com>
+ * Copyright (C) 2021 Stefano Moioli <smxdev4@gmail.com>
  **/
 #include <assert.h>
 #include <stdio.h>

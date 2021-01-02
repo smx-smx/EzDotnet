@@ -1,6 +1,6 @@
-/**
- * Copyright (C) 2019 Stefano Moioli <smxdev4@gmail.com>
- */
+/*
+ * Copyright (C) 2021 Stefano Moioli <smxdev4@gmail.com>
+ **/
 #include <cstdio>
 #include <cstdbool>
 #include <mono/jit/jit.h>
