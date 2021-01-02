@@ -68,11 +68,12 @@ namespace ManagedSample
 			mem.Write(buffer, offset, toWrite);
 			this.written += toWrite;
 
-			if (buffer.Contains((byte)'\n')) {
+			if (buffer.Contains((byte)'\n') || toWrite < count) {
 				Flush();
-			} else if (toWrite < count) {
-				Flush();
-				int remaining = count - toWrite;
+			}
+
+			int remaining = count - toWrite;
+			if(remaining > 0){
 				mem.Write(buffer, offset + toWrite, remaining);
 				this.written += remaining;
 			}

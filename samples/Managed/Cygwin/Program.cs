@@ -15,8 +15,9 @@ namespace ManagedSample
 				Console.SetError(stderr);
 
 				Console.WriteLine("Hello");
-
 				Console.WriteLine("Write Something: ");
+				Console.Out.Flush();
+
 				string line = Console.ReadLine();
 				Console.WriteLine(line);
 
