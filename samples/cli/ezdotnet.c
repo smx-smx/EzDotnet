@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <windows.h>
 
+#include "common/common.h"
+
 #ifndef DEBUG_MODE
 #define DEBUG_MODE 0
 #endif
@@ -20,20 +22,20 @@ int go(
     const char *asmPath,
     const char *targetClassName, const char *targetMethodName
 ){
-	HMODULE hmod = LoadLibraryA(loaderPath);
+	void *hmod = LIB_OPEN(loaderPath);
 	if(hmod == NULL){
 		fprintf(stderr, "Failed to load %s\n", loaderPath);
 		return -1;
 	}
 
 	fprintf(stderr, "Handle: %p\n", hmod);
-	clrInitFunc clrInit = (clrInitFunc)GetProcAddress(hmod, "clrInit");
+	clrInitFunc clrInit = (clrInitFunc)LIB_GETSYM(hmod, "clrInit");
 	if(clrInit == NULL){
 		fputs("clrInit not found", stderr);
 		return -1;
 	}
 
-	runMethodFunc runMethod = (runMethodFunc)GetProcAddress(hmod, "runMethod");
+	runMethodFunc runMethod = (runMethodFunc)LIB_GETSYM(hmod, "runMethod");
 	if(runMethod == NULL){
 		fputs("runMethod not found", stderr);
 		return -1;

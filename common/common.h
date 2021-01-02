@@ -1,6 +1,7 @@
+#pragma once
+
 #ifdef __cplusplus
 #include <string>
-
 template<typename TTo, typename TFrom>
 static std::basic_string<TTo> str_conv(std::basic_string<TFrom> str){
 	size_t length = str.length();
@@ -12,17 +13,8 @@ template <typename TTo>
 static std::basic_string<TTo> str_conv(const char *str){
 	return str_conv<TTo, char>(std::string(str));
 }
-#endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-#ifdef _WIN32
-#define DLLEXPORT __declspec(dllexport) extern
-#else
-#define DLLEXPORT extern
+std::string to_native_path(const std::string& path);
 #endif
 
 #ifdef __i386__
@@ -42,30 +34,8 @@ extern "C" {
 typedef size_t ASMHANDLE;
 size_t str_hash(const char *str);
 
-#if defined(_WIN32) && defined(DEBUG)
-bool launchDebugger();
-#endif
-
-
-#if defined(WIN32) && !defined(__CYGWIN__)
-# define LIB_HANDLE HMODULE
-# define LIB_OPEN(path) LoadLibraryA(path)
-# define LIB_GETSYM(handle, sym) GetProcAddress(handle, sym)
-# define LIB_PREFIX ""
-# define LIB_SUFFIX ".dll"
+#if defined(WIN32) || defined(__CYGWIN__)
+#include "common_win32.h"
 #else
-# define LIB_HANDLE void *
-# define LIB_OPEN(path) dlopen(path, RTLD_GLOBAL)
-# define LIB_GETSYM(handle, sym) dlsym(handle, sym)
-# ifdef __CYGWIN__
-#  define LIB_PREFIX ""
-#  define LIB_SUFFIX ".dll"
-# else
-#  define LIB_PREFIX "lib"
-#  define LIB_SUFFIX ".so"
-# endif
-#endif
-
-#ifdef __cplusplus
-}
+#include "common_unix.h"
 #endif

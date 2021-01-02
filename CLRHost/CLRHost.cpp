@@ -26,46 +26,6 @@ using namespace System::Runtime::Remoting;
 
 #include "common/common.h"
 
-#include <cstdint>
-#include "cygwin.h"
-
-template<typename F>
-void MyGetProcAddress(HMODULE hmod, const char *name, F &dst) {
-	dst = reinterpret_cast<F>(::GetProcAddress(hmod, name));
-}
-
-static ssize_t (*cygwin_conv_path) (cygwin_conv_path_t what, const void *from, void *to, size_t size) = nullptr;
-
-static void initCygwin() {
-	HMODULE hCygwin = GetModuleHandle("cygwin1");
-	if(hCygwin == nullptr){
-		// not running under cygwin
-		return;
-	}
-
-	MyGetProcAddress(hCygwin, "cygwin_conv_path", cygwin_conv_path);
-}
-
-static std::string to_native_path(std::string path) {
-	if(::cygwin_conv_path == nullptr){
-		return path;
-	}
-
-	int flags = CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE;
-
-	ssize_t size = ::cygwin_conv_path(flags, path.c_str(), nullptr, 0);
-	if (size < 0) {
-		throw "cygwin_conv_path";
-	}
-
-	std::string buf(size, '\0');
-	if (::cygwin_conv_path(flags, path.c_str(), buf.data(), size) != 0) {
-		throw "cygwin_conv_path";
-	}
-
-	return buf;
-}
-
 /**
  * Loads an assembly by looking up the same folder as the executing assembly
  */

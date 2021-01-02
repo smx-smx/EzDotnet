@@ -110,6 +110,68 @@ static std::map<ASMHANDLE, PluginInstanceData> gPlugins;
 static MonoDomain *rootDomain = nullptr;
 static bool gMonoInitialized = false;
 
+ASMHANDLE initialize(const std::string& asmPathStr, const std::string& asmDirStr){
+	/**
+	 * Get Paths
+	 */
+	std::filesystem::path asmPath = asmPathStr;
+	std::string pluginName = asmPath.filename().replace_extension().string();
+
+	ASMHANDLE handle = str_hash(pluginName.c_str());
+	if (gPlugins.find(handle) != gPlugins.end()) {
+		return handle;
+	}
+
+	DPRINTF("loading %s\n", asmPath.c_str());
+
+	if (!gMonoInitialized) {
+		DPRINTF("initializing mono\n");
+
+		rootDomain = mono_jit_init_version("SharpInj", "v4.0");
+		if (!rootDomain) {
+			fprintf(stderr, "Failed to initialize mono\n");
+			return NULL_ASMHANDLE;
+		}
+		// Load the default mono configuration file
+		mono_config_parse(nullptr);
+
+		gMonoInitialized = true;
+		DPRINTF("mono initialization completed\n");
+	}
+
+	/**
+	 * Create AppDomain
+	 */
+	DPRINTF("creating appdomain...\n");
+	MonoDomain *newDomain = mono_domain_create_appdomain(const_cast<char *>(pluginName.c_str()), nullptr);
+	std::string configPath = asmPath.replace_extension().string() + ".config";
+	mono_domain_set_config(newDomain, asmDirStr.c_str(), configPath.c_str());
+
+
+	DPRINTF("loading assembly...\n");
+	MonoAssembly *pluginAsm = mono_domain_assembly_open(newDomain, asmPathStr.c_str());
+	if (!pluginAsm) {
+		fprintf(stderr, "Failed to open assembly '%s'\n", asmPathStr.c_str());
+		return NULL_ASMHANDLE;
+	}
+
+	MonoImage *image = mono_assembly_get_image(pluginAsm);
+	if (!image) {
+		fprintf(stderr, "Failed to get image\n");
+		return NULL_ASMHANDLE;
+	}
+
+	// NOTE: can't use mono_assembly_load_references (it's deprecated and does nothing)
+
+	int numAssemblies = mono_image_get_table_rows(image, MONO_TABLE_ASSEMBLYREF);
+	for (int i = 0; i < numAssemblies; i++) {
+		mono_assembly_load_reference(image, i);
+	}
+
+	gPlugins.emplace(handle, PluginInstanceData(newDomain, pluginAsm));
+	return handle;
+}
+
 extern "C" {
 	/*
 	 * Initializes the Mono runtime
@@ -119,65 +181,13 @@ extern "C" {
 	) {
 		DPRINTF("\n");
 
-		/**
-		 * Get Paths
-		 */
-		std::filesystem::path asmPath(assemblyPath);
-		std::string pluginName = asmPath.filename().replace_extension().string();
+		#ifdef WIN32
+		initCygwin();
+		#endif
 
-		ASMHANDLE handle = str_hash(pluginName.c_str());
-		if (gPlugins.find(handle) != gPlugins.end()) {
-			return handle;
-		}
-
-		DPRINTF("loading %s\n", assemblyPath);
-
-		if (!gMonoInitialized) {
-			DPRINTF("initializing mono\n");
-
-			rootDomain = mono_jit_init_version("SharpInj", "v4.0");
-			if (!rootDomain) {
-				fprintf(stderr, "Failed to initialize mono\n");
-				return NULL_ASMHANDLE;
-			}
-			// Load the default mono configuration file
-			mono_config_parse(nullptr);
-
-			gMonoInitialized = true;
-			DPRINTF("mono initialization completed\n");
-		}
-
-		/**
-		 * Create AppDomain
-		 */
-		DPRINTF("creating appdomain...\n");
-		MonoDomain *newDomain = mono_domain_create_appdomain(const_cast<char *>(pluginName.c_str()), nullptr);
-		std::string configPath = asmPath.replace_extension().string() + ".config";
-		mono_domain_set_config(newDomain, pluginFolder, configPath.c_str());
-
-
-		DPRINTF("loading assembly...\n");
-		MonoAssembly *pluginAsm = mono_domain_assembly_open(newDomain, assemblyPath);
-		if (!pluginAsm) {
-			fprintf(stderr, "Failed to open assembly '%s'\n", assemblyPath);
-			return NULL_ASMHANDLE;
-		}
-
-		MonoImage *image = mono_assembly_get_image(pluginAsm);
-		if (!image) {
-			fprintf(stderr, "Failed to get image\n");
-			return NULL_ASMHANDLE;
-		}
-
-		// NOTE: can't use mono_assembly_load_references (it's deprecated and does nothing)
-
-		int numAssemblies = mono_image_get_table_rows(image, MONO_TABLE_ASSEMBLYREF);
-		for (int i = 0; i < numAssemblies; i++) {
-			mono_assembly_load_reference(image, i);
-		}
-
-		gPlugins.emplace(handle, PluginInstanceData(newDomain, pluginAsm));
-		return handle;
+		std::string asmPath = ::to_native_path(std::string(assemblyPath));
+		std::string asmDir = ::to_native_path(std::string(pluginFolder));
+		return initialize(asmPath, asmDir);
 	}
 
 	/*

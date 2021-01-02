@@ -11,13 +11,6 @@
 
 #define DEBUG
 
-#if defined(WIN32) && !defined(__CYGWIN__)
-#include <io.h>
-#include <Windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
 #include <fcntl.h>
 
 #include "coreclr_delegates.h"
@@ -32,29 +25,11 @@ fx_string operator "" _toNativeString(const char *ptr, size_t size){
 	return str_conv<char_t>(str);
 }
 
-#ifdef __CYGWIN__
-#include <sys/cygwin.h>
-static fx_string to_native_path(fx_string fx_path){
+static fx_string to_native_fx_path(fx_string fx_path){
 	std::string path = ::str_conv<char>(fx_path);
-
-	int flags = CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE;
-	
-	ssize_t size = cygwin_conv_path(flags, path.c_str(), nullptr, 0);
-	if(size < 0){
-		throw "cygwin_conv_path";
-	}
-
-	std::string buf(size, '\0');
-	if(cygwin_conv_path(flags, path.c_str(), buf.data(), size) != 0){
-		throw "cygwin_conv_path";
-	}
-
-	return ::str_conv<char_t>(buf);
+	std::string native_path = ::to_native_path(path);
+	return ::str_conv<char_t>(native_path);
 }
-#else
-static fx_string to_native_path(fx_string path){ return path; }
-#endif
-
 struct PluginInstance {
 private:
 	fx_string m_asmPath;
@@ -85,7 +60,7 @@ public:
 			::str_conv<char>(targetClassName).c_str()
 		);
 		m_loadAssembly(
-			::to_native_path(m_asmPath).c_str(),
+			::to_native_fx_path(m_asmPath).c_str(),
 			targetClassName.c_str(),
 			targetMethodName.c_str(),
 			NULL, //-> public delegate int ComponentEntryPoint(IntPtr args, int sizeBytes);
@@ -133,7 +108,7 @@ static int initHostFxr(
 	load_assembly_and_get_function_pointer_fn pfnLoadAssembly = nullptr;
 
 	pfnInitializer(
-		::to_native_path(initParams.runtimeconfig_path).c_str(),
+		::to_native_fx_path(initParams.runtimeconfig_path).c_str(),
 		&hostfxr_params, &runtimeHandle
 	);
 	if (runtimeHandle == nullptr) {
