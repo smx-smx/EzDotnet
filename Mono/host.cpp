@@ -181,7 +181,7 @@ extern "C" {
 	) {
 		DPRINTF("\n");
 
-		#ifdef WIN32
+		#if defined(WIN32) || defined(__CYGWIN__)
 		initCygwin();
 		#endif
 
