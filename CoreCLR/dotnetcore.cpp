@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2021 Stefano Moioli <smxdev4@gmail.com>
  **/
-#define _GNU_SOURCE
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
