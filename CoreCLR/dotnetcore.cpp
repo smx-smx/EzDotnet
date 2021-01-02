@@ -61,7 +61,7 @@ static fx_string to_native_path(fx_string fx_path){
 	return ::str_conv<char_t>(buf);
 }
 #else
-static std::string to_native_path(fx_string path){ return path; }
+static fx_string to_native_path(fx_string path){ return path; }
 #endif
 
 struct PluginInstance {
