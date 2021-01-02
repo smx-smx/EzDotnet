@@ -7,8 +7,6 @@
 #include <stdint.h>
 #include <windows.h>
 
-#include "cygwin.h"
-
 #ifndef DEBUG_MODE
 #define DEBUG_MODE 0
 #endif
