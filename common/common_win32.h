@@ -11,16 +11,22 @@ extern "C" {
 #define LIB_PREFIX ""
 #define LIB_SUFFIX ".dll"
 
-#ifdef __CYGWIN__
-# include <dlfcn.h>
-# define LIB_HANDLE void *
-# define LIB_OPEN(path) dlopen(path, RTLD_GLOBAL)
-# define LIB_GETSYM(handle, sym) dlsym(handle, sym)
-#else
+#if defined(WIN32) || defined(__CYGWIN__)
+/**
+ * Using CLRHost under cygwin requires LoadLibraryA
+ * Using dlopen instead will cause
+ *	 Assembly::GetExecutingAssembly()->Location
+ * to throw due to invalid characters in the path (likely due to the cygwin path)
+ **/
 # include <Windows.h>
 # define LIB_HANDLE HMODULE
 # define LIB_OPEN(path) LoadLibraryA(path)
 # define LIB_GETSYM(handle, sym) GetProcAddress(handle, sym)
+#else
+# include <dlfcn.h>
+# define LIB_HANDLE void *
+# define LIB_OPEN(path) dlopen(path, RTLD_GLOBAL)
+# define LIB_GETSYM(handle, sym) dlsym(handle, sym)
 #endif
 
 #ifdef DEBUG

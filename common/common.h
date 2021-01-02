@@ -17,6 +17,10 @@ static std::basic_string<TTo> str_conv(const char *str){
 std::string to_native_path(const std::string& path);
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __i386__
   #define APICALL __attribute__((__cdecl__))
 #else
@@ -33,9 +37,15 @@ std::string to_native_path(const std::string& path);
 #define NULL_ASMHANDLE 0
 typedef size_t ASMHANDLE;
 size_t str_hash(const char *str);
+char *to_native_path(const char *path);
+char *to_windows_path(const char *path);
 
 #if defined(WIN32) || defined(__CYGWIN__)
 #include "common_win32.h"
 #else
 #include "common_unix.h"
+#endif
+
+#ifdef __cplusplus
+}
 #endif

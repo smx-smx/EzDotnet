@@ -1,4 +1,5 @@
-#include "common.h"
+#include <vector>
+#include <Windows.h>
 
 #ifdef __CYGWIN__
 #include <sys/cygwin.h>
@@ -6,7 +7,7 @@
 #include "cygwin.h"
 #endif
 
-#include <Windows.h>
+#include "common.h"
 
 static bool running_in_cygwin = false;
 static ssize_t (*pfnCygwinConvPath) (cygwin_conv_path_t what, const void *from, void *to, size_t size) = nullptr;
@@ -26,24 +27,36 @@ void initCygwin() {
 	MyGetProcAddress(hCygwin, "cygwin_conv_path", ::pfnCygwinConvPath);
 }
 
-std::string to_native_path(const std::string& path){
+std::string cygwin_conv_path(const std::string& path, int flags){
 	if(pfnCygwinConvPath == nullptr){
 		return path;
 	}
 
-	int flags = CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE;
-	
 	ssize_t size = pfnCygwinConvPath(flags, path.c_str(), nullptr, 0);
 	if(size < 0){
 		throw "cygwin_conv_path";
 	}
 
-	std::string buf(size, '\0');
+	std::vector<char> buf = std::vector<char>(size);
 	if(pfnCygwinConvPath(flags, path.c_str(), buf.data(), size) != 0){
 		throw "cygwin_conv_path";
 	}
 
-	return buf;
+	return std::string(buf.data());
+}
+
+std::string to_native_path(const std::string& path){
+	return ::cygwin_conv_path(path, CCP_WIN_A_TO_POSIX | CCP_ABSOLUTE);
+}
+
+std::string to_windows_path(const std::string& path){
+	return ::cygwin_conv_path(path, CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE);
+}
+
+char *to_windows_path(const char *path){
+	std::string str(path);
+	std::string converted = ::to_windows_path(str);
+	return strdup(converted.c_str());
 }
 
 #ifdef DEBUG

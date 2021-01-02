@@ -12,7 +12,6 @@
 #define DEBUG_MODE 0
 #endif
 
-typedef size_t ASMHANDLE;
 typedef ASMHANDLE (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
 typedef int (*runMethodFunc)(ASMHANDLE handle, const char *typeName, const char *methodName);
 
@@ -31,7 +30,21 @@ int go(
     const char *asmPath,
     const char *targetClassName, const char *targetMethodName
 ){
-	void *hmod = LIB_OPEN(loaderPath);
+	char *finalLoaderPath = NULL;
+
+	#ifdef __CYGWIN__
+	initCygwin();
+	finalLoaderPath = to_windows_path(loaderPath);
+	#else
+	finalLoaderPath = (char *)loaderPath;
+	#endif
+
+	void *hmod = LIB_OPEN(finalLoaderPath);
+
+	#ifdef __CYGWIN__
+	free(finalLoaderPath);
+	#endif
+
 	if(hmod == NULL){
 		fprintf(stderr, "Failed to load %s\n", loaderPath);
 		return -1;
