@@ -61,7 +61,7 @@ uintptr_t cygwin_load(){
     char cygwinPath[MAX_PATH];
 
     char *systemDrive = getenv("SystemDrive");
-    sprintf_s(cygwinPath, sizeof(cygwinPath), "%s\\cygwin64\\bin\\cygwin1.dll", systemDrive);
+    snprintf(cygwinPath, sizeof(cygwinPath), "%s\\cygwin64\\bin\\cygwin1.dll", systemDrive);
 
 	HMODULE hCygwin = LoadLibraryA(cygwinPath);
 	assert(hCygwin != NULL);
@@ -94,9 +94,11 @@ void save_stack(void *pMem){
 #endif
 
 int __cdecl mainCRTStartupHook(){
+    #ifndef __CYGWIN__
 	cygwin_load();
 	_alloca(cygTlsSize);
 	cygwin_dll_init();
+    #endif
 	return mainCRTStartup();
 }
 
