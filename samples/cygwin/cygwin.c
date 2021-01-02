@@ -68,7 +68,19 @@ void save_stack(void *pMem){
 }
 #endif
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#define ENV_PUT(key, val) SetEnvironmentVariable(key, val)
+#else
+#define ENV_PUT(key, val) setenv(key, val, 1)
+#endif
+
 int main(int argc, char *argv[]){
+    char tmp[50];
+    snprintf(tmp, sizeof(tmp), "%p", &argv[5]);
+    ENV_PUT("EZDOTNET_ARGV", tmp);
+    snprintf(tmp, sizeof(tmp), "%d", argc - 5);
+    ENV_PUT("EZDOTNET_ARGC", tmp);
+
     if(argc < 5){
         fprintf(stderr, "Usage: %s [loaderPath] [asmPath] [className] [methodName]\n", argv[0]);
         return 1;
