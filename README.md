@@ -1,15 +1,18 @@
-# SharpInj
+# EzDotNet
 Load a C# assembly inside a native executable
 
 ## How does it work:
-There are 2 backends:
+There are 3 backends:
 - CLRHost for Windows
 - MonoHost for any platform supporting Mono (Windows/macOS/Linux/etc...)
+- CoreCLR for dotnet core
+
+The backends expose the same interface so that it's possible to use them with the same APIs.
 
 ## API
 The backends share a common interface:
 
-- `PLGHANDLE clrInit(const char *assemblyPath, const char *baseDir, bool enableDebug)`
+- `ASMHANDLE clrInit(const char *assemblyPath, const char *baseDir, bool enableDebug)`
 
 Loads the assembly specified by `assemblyPath`, sets the base search directory to `baseDir`
 
@@ -20,21 +23,32 @@ if compiled with -DLAUNCH_DEBUGGER, the JIT debugger will also be invoked (still
 Returns a handle to the loaded assembly
 
 
-- `bool clrDeInit(PLGHANDLE handle)`
+- `bool clrDeInit(ASMHANDLE handle)`
 
 Deinitializes the assembly
 
 
-- `int runMethod(PLGHANDLE handle, const char *typeName, const char *methodName)`
+- `int runMethod(ASMHANDLE handle, const char *typeName, const char *methodName)`
 
 Runs the method `methodName` inside the class `typeName` given a `handle` to the assembly loaded with `clrInit`
 
 
-## How to use
-You will need to create a shared library that links against CLRHost or MonoHost and uses the APIs described in the previous section.
+## Use cases
 
-You will then need a way to inject this DLL in the process you're targeting.
+### Executable or Library
+You can use this project inside an executable or a shared library.
+You can either link statically against a single loader or you can load them dynamically, so that the CLR engine to use (CLR/CoreCLR/Mono) can be chosen at runtime
 
+### Cygwin Interop
+This project enables you to call Cygwin code from .NET.
+For this use case, the entry point (`samples/cli/ezdotnet`) **MUST** be compiled under Cygwin.
+
+In other words, you can call code Cygwin code from .NET only if you're starting with a Cygwin process, and you load .NET afterwards.
+Starting from Win32 and calling into Cygwin will **NOT** work
+
+### Process Injection
+If you're building a shared library, you can inject it into another process to enable it to run .NET code.
+For this use case you will need to use a library injector
 There are several tools and ways to achieve this, for example
 
 - Google (Windows: there are dozen injectors available as prebuilt tools)
