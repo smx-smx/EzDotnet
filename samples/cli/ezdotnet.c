@@ -12,8 +12,8 @@
 #define DEBUG_MODE 0
 #endif
 
-typedef ASMHANDLE (*clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
-typedef int (*runMethodFunc)(ASMHANDLE handle, const char *typeName, const char *methodName);
+typedef ASMHANDLE (APICALL *clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
+typedef int (APICALL *runMethodFunc)(ASMHANDLE handle, const char *typeName, const char *methodName);
 
 #if defined(WIN32) || defined(__CYGWIN__)
 #include <Windows.h>
