@@ -85,16 +85,10 @@ private:
 	Assembly^ targetAsm;
 
 	MethodInfo^ findMethod(String^ typeName, String^ methodName) {
-		Type^ type;
-		for each (Type^ _type in targetAsm->GetTypes()) {
-			if (_type->Name->Equals(typeName)) {
-				type = _type;
-				break;
-			}
-		}
-
-		if (type == nullptr)
+		Type ^type = targetAsm->GetType(typeName);
+		if (type == nullptr) {
 			return nullptr;
+		}
 
 		return type->GetMethod(methodName,
 			BindingFlags::Instance | BindingFlags::Static |
