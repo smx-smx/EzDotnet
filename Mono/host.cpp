@@ -84,7 +84,14 @@ public:
 				return;
 
 			MonoObject *exception = nullptr;
-			void **args = nullptr;
+
+			void *argsPtr = nullptr;
+			int argsSizeInBytes = 0;
+
+			void *args[2] = {
+				&argsPtr,
+				&argsSizeInBytes
+			};
 			MonoObject *ret = mono_runtime_invoke(method, nullptr, args, &exception);
 
 			*pMethodInvoked = true;

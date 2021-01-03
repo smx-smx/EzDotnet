@@ -5,7 +5,7 @@ namespace ManagedSample
 {
 	public class EntryPoint
 	{
-		private static int CommonEntry(){
+		private static int Entry(IntPtr args, int sizeBytes){
 			using (var stdin = new StreamReader(new CygwinInputStream(0)))
 			using (var stdout = new StreamWriter(new CygwinOutputStream(1)))
 			using (var stderr = new StreamWriter(new CygwinOutputStream(2))) {
@@ -27,9 +27,6 @@ namespace ManagedSample
 			}            
 			return 0;
 		}
-
-		public static void EntryCLR() => CommonEntry();
-		public static int EntryCoreCLR(IntPtr args, int sizeBytes) => CommonEntry();
 
 		public static void Main(string[] args)
 		{

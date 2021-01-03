@@ -73,15 +73,15 @@ build_parallel(){
 test(){
 	$lcyan; echo "[TEST] Running CLRHost (win32)"; $normal
 	${EZDOTNET_CYGWIN} ${HOST_WIN32_CLR} ${SAMPLE_NETFWK} \
-		ManagedSample.EntryPoint EntryCLR
+		ManagedSample.EntryPoint Entry
 
 	$lcyan; echo "[TEST] Running MonoHost (win32/mingw64)"; $normal
 	PATH="/cygdrive/c/msys64/mingw64/bin:$PATH" ${EZDOTNET_CYGWIN} ${HOST_MINGW_MONO} ${SAMPLE_NETFWK} \
-		ManagedSample.EntryPoint EntryCLR
+		ManagedSample.EntryPoint Entry
 
 	$lcyan; echo "[TEST] Running CoreCLR (cygwin)"; $normal
 	${EZDOTNET_CYGWIN} ${HOST_CYGWIN_CORECLR} ${SAMPLE_NETCORE} \
-		ManagedSample.EntryPoint EntryCoreCLR
+		ManagedSample.EntryPoint Entry
 }
 
 #build_parallel

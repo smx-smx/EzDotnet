@@ -110,7 +110,11 @@ public:
 		if (method == nullptr)
 			return -1;
 
-		method->Invoke(nullptr, nullptr);
+		array<Object ^> ^args = gcnew array<Object ^>(2);
+		args[0] = IntPtr::Zero; //IntPtr args
+		args[1] = 0; //int sizeBytes
+
+		method->Invoke(nullptr, args);
 		return 0;
 	}
 };
