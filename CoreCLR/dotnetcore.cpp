@@ -185,7 +185,7 @@ extern "C" {
 			hostfxr_initialize_for_runtime_config_fn pfnInitializer = nullptr;
 			hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
 
-			std::string hostFxrPathStr = hostFxrPath.string();
+			std::string hostFxrPathStr = ::to_native_path(hostFxrPath.string());
 			fx_string asmDirStr = asmDir.string<char_t>();
 
 			// copy path before removing the extension
