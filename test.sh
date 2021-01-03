@@ -23,6 +23,7 @@ HOST_WIN32_CLR="$PWD/build_win32/CLRHost/Debug/CLRHost.dll"
 HOST_CYGWIN_CORECLR="$PWD/build_cygwin/CoreCLR/cygcoreclrhost.dll"
 HOST_MINGW_MONO="$PWD/build_mingw/Mono/libMonoHost.dll"
 
+SAMPLE_CSPROJ="$PWD/samples/Managed/Cygwin/Cygwin.csproj"
 SAMPLE_NETFWK="$PWD/samples/Managed/Cygwin/bin/Debug/net472/Cygwin.exe"
 SAMPLE_NETCORE="$PWD/samples/Managed/Cygwin/bin/Debug/net5.0/Cygwin.dll"
 
@@ -46,6 +47,10 @@ build_mingw64(){
 	cmd /C "C:\msys64\usr\bin\bash" -c "export PATH=/mingw64/bin:/usr/bin; (${inner})"
 }
 
+build_sample(){
+	dotnet build "$(cygpath -w "${SAMPLE_CSPROJ}")"
+}
+
 build(){
 	$lcyan; echo "[BUILD] win32"; $normal
 	build_win32
@@ -53,12 +58,15 @@ build(){
 	build_mingw64
 	$lcyan; echo "[BUILD] cygwin"; $normal
 	build_cygwin
+	$lcyan; echo "[BUILD] sample"; $normal
+	build_sample
 }
 
 build_parallel(){
 	build_win32 &
 	build_mingw64 &
 	build_cygwin &
+	build_sample &
 	wait
 }
 
