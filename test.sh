@@ -19,7 +19,7 @@ white='printf \033[01;37m'
 
 EZDOTNET_CYGWIN="$PWD/build_cygwin/samples/cli/ezdotnet.exe"
 
-HOST_WIN32_CLR="$PWD/build/CLRHost/Debug/CLRHost.dll"
+HOST_WIN32_CLR="$PWD/build_win32/CLRHost/Debug/CLRHost.dll"
 HOST_CYGWIN_CORECLR="$PWD/build_cygwin/CoreCLR/cygcoreclrhost.dll"
 HOST_MINGW_MONO="$PWD/build_mingw/Mono/libMonoHost.dll"
 
@@ -27,20 +27,23 @@ SAMPLE_NETFWK="$PWD/samples/Managed/Cygwin/bin/Debug/net472/Cygwin.exe"
 SAMPLE_NETCORE="$PWD/samples/Managed/Cygwin/bin/Debug/net5.0/Cygwin.dll"
 
 build_cygwin(){
-	make -C build_cygwin
+	cmake -B build_cygwin -G "Unix Makefiles" && \
+	cmake --build build_cygwin
 }
 
 build_win32(){
 	cmd /C \
 		set PATH= \& \
 		call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat" \& \
-		cmake --build build
+		cmake -B build_win32 -G "Visual Studio 16 2019" -A "x64" \& \
+		cmake --build build_win32
 }
 
 build_mingw64(){
-	inner="PATH=/mingw64/bin:/usr/bin"
+	inner=""
+	inner="${inner} cmake -B build_mingw -G 'MSYS Makefiles' &&"
 	inner="${inner} cmake --build build_mingw"
-	cmd /C "C:\msys64\usr\bin\bash" -c "${inner}"
+	cmd /C "C:\msys64\usr\bin\bash" -c "export PATH=/mingw64/bin:/usr/bin; (${inner})"
 }
 
 build(){
@@ -70,5 +73,6 @@ test(){
 	${EZDOTNET_CYGWIN} ${HOST_CYGWIN_CORECLR} ${SAMPLE_NETCORE} ManagedSample.EntryPoint EntryCoreCLR
 }
 
-build_parallel
+#build_parallel
+build
 test
