@@ -25,13 +25,10 @@ void initCygwin() {
 	}
 
 	MyGetProcAddress(hCygwin, "cygwin_conv_path", ::pfnCygwinConvPath);
+	::running_in_cygwin = ::pfnCygwinConvPath != nullptr;
 }
 
 std::string cygwin_conv_path(const std::string& path, int flags){
-	if(pfnCygwinConvPath == nullptr){
-		return path;
-	}
-
 	ssize_t size = pfnCygwinConvPath(flags, path.c_str(), nullptr, 0);
 	if(size < 0){
 		throw "cygwin_conv_path";
@@ -45,12 +42,15 @@ std::string cygwin_conv_path(const std::string& path, int flags){
 	return std::string(buf.data());
 }
 
-std::string to_native_path(const std::string& path){
-	return ::cygwin_conv_path(path, CCP_WIN_A_TO_POSIX | CCP_ABSOLUTE);
-}
-
 std::string to_windows_path(const std::string& path){
 	return ::cygwin_conv_path(path, CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE);
+}
+
+std::string to_native_path(const std::string& path){
+	if(!::running_in_cygwin){
+		return path;
+	}
+	return ::to_windows_path(path);
 }
 
 char *to_windows_path(const char *path){
