@@ -105,14 +105,17 @@ public:
 		targetAsm = (gcnew PathListAssemblyLoader(asmSearchPaths))->LoadFrom(assemblyPath);
 	}
 
-	int runMethod(String^ className, String^ methodName) {
+	int runMethod(
+		String^ className, String^ methodName,
+		int argc, const char *argv[]
+	) {
 		MethodInfo^ method = findMethod(className, methodName);
 		if (method == nullptr)
 			return -1;
 
 		array<Object ^> ^args = gcnew array<Object ^>(2);
-		args[0] = IntPtr::Zero; //IntPtr args
-		args[1] = 0; //int sizeBytes
+		args[0] = gcnew IntPtr(argv); //IntPtr args
+		args[1] = gcnew Int32(argc * sizeof(char *)); //int sizeBytes
 
 		method->Invoke(nullptr, args);
 		return 0;
@@ -136,14 +139,19 @@ extern "C" {
 	typedef void(*exit_callback_t)();
 
 	__declspec(dllexport)
-		extern int __cdecl runMethod(ASMHANDLE handle, const char* typeName, const char* methodName) {
+		extern int __cdecl runMethod(
+			ASMHANDLE handle,
+			const char* typeName, const char* methodName,
+			int argc, const char *argv[]
+		) {
 		if (gHandles.find(handle) == gHandles.end()) {
 			return -1;
 		}
 
 		gHandles.at(handle).instance->runMethod(
 			gcnew String(typeName),
-			gcnew String(methodName)
+			gcnew String(methodName),
+			argc, argv
 		);
 		return 0;
 	}

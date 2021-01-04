@@ -43,29 +43,23 @@ struct PluginInstanceData {
 	PluginInstanceData(){}
 private:
 	const char *m_asmName;
-public:
-	MonoDomain *appDomain;
 
-	int runMethod(const char *typeName, const char *methodName){
-		MonoThread *thread = mono_thread_attach(appDomain);
-
-		bool methodInvoked = false;
-
-		std::string methodDesc = std::string(typeName) + "::" + std::string(methodName);
+	MonoMethod *findMethod(const char *methodDesc){
+		MonoMethod *method = nullptr;
 
 		void *pUserData[] = {
-			(void *)methodDesc.c_str(),
+			(void *)methodDesc,
 			(void *)m_asmName,
-			(void *)&methodInvoked
+			(void *)&method
 		};
 
 		mono_assembly_foreach([](void *refAsmPtr, void *userdata) {
 			void **pPointers = (void **)userdata;
 			const char *monoMethodName = (const char *)pPointers[0];
 			const char *m_asmName = (const char *)pPointers[1];
-			bool *pMethodInvoked = (bool *)pPointers[2];
+			MonoMethod **ppMethod = (MonoMethod **)pPointers[2];
 
-			if(*pMethodInvoked)
+			if(*ppMethod != nullptr)
 				return;
 
 			MonoAssembly *refAsm = (MonoAssembly *)refAsmPtr;
@@ -79,30 +73,50 @@ public:
 				return;
 			}
 
-			MonoMethod *method = imageFindMethod(refAsmImage, monoMethodName);
-			if(method == nullptr)
-				return;
-
-			MonoObject *exception = nullptr;
-
-			void *argsPtr = nullptr;
-			int argsSizeInBytes = 0;
-
-			void *args[2] = {
-				&argsPtr,
-				&argsSizeInBytes
-			};
-			MonoObject *ret = mono_runtime_invoke(method, nullptr, args, &exception);
-
-			*pMethodInvoked = true;
-
-			if (exception) {
-				mono_print_unhandled_exception(exception);
-			}
+			*ppMethod = imageFindMethod(refAsmImage, monoMethodName);
 		}, pUserData);
 
+		return method;
+	}
+
+public:
+	MonoDomain *appDomain;
+
+	int runMethod(
+		const char *typeName, const char *methodName,
+		int argc, const char *argv[]
+	){
+		MonoThread *thread = mono_thread_attach(appDomain);
+		bool methodInvoked = false;
+
+		std::string methodDesc = std::string(typeName) + "::" + std::string(methodName);
+
+		MonoMethod *method = findMethod(methodDesc.c_str());
+
+		int rc = -1;
+		if(method == nullptr){
+			return rc;
+		}
+
+		MonoObject *exception = nullptr;
+
+		void *argsPtr = argv;
+		int argsSizeInBytes = argc * sizeof(char *);
+
+		void *args[2] = {
+			&argsPtr,
+			&argsSizeInBytes
+		};
+		MonoObject *ret = mono_runtime_invoke(method, nullptr, args, &exception);
+
+		if (exception != nullptr) {
+			mono_print_unhandled_exception(exception);
+		} else {
+			rc = 0;
+		}
+
 		mono_thread_detach(thread);
-		return 0;
+		return rc;
 	}
 
 	PluginInstanceData(MonoDomain *pAppDomain, MonoAssembly *pMonoAsm) :
@@ -215,8 +229,12 @@ extern "C" {
 	 * These are C bindings to C# methods.
 	 * Calling any of the methods below will call the respective C# method in the loaded assembly
 	 */
-	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *typeName, const char *methodName) {
+	DLLEXPORT int APICALL runMethod(
+		ASMHANDLE handle,
+		const char *typeName, const char *methodName,
+		int argc, const char *argv[]
+	) {
 		DPRINTF("\n");
-		return gPlugins.at(handle).runMethod(typeName, methodName);
+		return gPlugins.at(handle).runMethod(typeName, methodName, argc, argv);
 	}
 }

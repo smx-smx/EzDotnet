@@ -38,7 +38,10 @@ public:
 	PluginInstance(fx_string asmPath, load_assembly_and_get_function_pointer_fn pfnLoadAssembly)
 		: m_asmPath(asmPath), m_loadAssembly(pfnLoadAssembly){}
 
-	int runMethod(const char *typeName, const char *methodName) {
+	int runMethod(
+		const char *typeName, const char *methodName,
+		int argc, const char *argv[]
+	) {
 		fx_string targetMethodName = ::str_conv<char_t>(methodName);
 
 		fx_string assemblyName = (
@@ -77,7 +80,7 @@ public:
 			return -1;
 		}
 		
-		pfnEntry(NULL, 0);
+		pfnEntry(argv, argc * sizeof(char *));
 		return 0;
 	}
 };
@@ -219,8 +222,12 @@ extern "C" {
 		return true;
 	}
 
-	DLLEXPORT int APICALL runMethod(ASMHANDLE handle, const char *typeName, const char *methodName) {
+	DLLEXPORT int APICALL runMethod(
+		ASMHANDLE handle,
+		const char *typeName, const char *methodName,
+		int argc, const char *argv[]
+	) {
 		DPRINTF("\n");
-		return gPlugins.at(handle).runMethod(typeName, methodName);
+		return gPlugins.at(handle).runMethod(typeName, methodName, argc, argv);
 	}
 }
