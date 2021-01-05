@@ -6,6 +6,11 @@ namespace ManagedSample
 {
 	public class EntryPoint
 	{
+		[DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+		private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+		private delegate void MainDelegate(string[] args);
+
 		private static string[] ReadArgv(IntPtr args, int sizeBytes){
 			int nargs = sizeBytes / IntPtr.Size;
 			string[] argv = new string[nargs];
@@ -17,17 +22,38 @@ namespace ManagedSample
 			return argv;
 		}
 
+		private static bool IsRunningInCygwin() {
+			return GetModuleHandle("cygwin1") != IntPtr.Zero;
+		}
+
 		private static int Entry(IntPtr args, int sizeBytes){
 			string[] argv = ReadArgv(args, sizeBytes);
-			using (var stdin = new StreamReader(new CygwinInputStream(0)))
-			using (var stdout = new StreamWriter(new CygwinOutputStream(1)))
-			using (var stderr = new StreamWriter(new CygwinOutputStream(2))) {
-				Console.SetIn(stdin);
-				Console.SetOut(stdout);
-				Console.SetError(stderr);
 
-				Main(argv);
+			Action<MainDelegate> initializer;
+
+			if (
+				RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+				IsRunningInCygwin()
+			) {
+				initializer = (main) => {
+					using (var stdin = new StreamReader(new CygwinInputStream(0)))
+					using (var stdout = new StreamWriter(new CygwinOutputStream(1)))
+					using (var stderr = new StreamWriter(new CygwinOutputStream(2))) {
+						Console.SetIn(stdin);
+						Console.SetOut(stdout);
+						Console.SetError(stderr);
+
+						main(argv);
+					}
+				};
+			} else {
+				initializer = (main) => {
+					main(argv);
+				};
 			}
+
+
+			initializer(Main);
 			return 0;
 		}
 
@@ -44,9 +70,6 @@ namespace ManagedSample
 
 			string line = Console.ReadLine();
 			Console.WriteLine($"You typed: {line}");
-
-			string posix = Cygwin.ToPosixPath(@"C:\Windows\explorer.exe");
-			Console.WriteLine(posix);
 
 			Console.WriteLine("Bye");
 		}
