@@ -3,9 +3,9 @@ Load a C# assembly inside a native executable
 
 ## How does it work:
 There are 3 backends:
-- CLRHost for Windows
+- CLRHost for Windows (.NET Framework v4.x)
 - MonoHost for any platform supporting Mono (Windows/macOS/Linux/etc...)
-- CoreCLR for dotnet core
+- CoreCLR for platforms supporting dotnet core
 
 The backends expose the same interface so that it's possible to use them with the same APIs.
 
@@ -16,16 +16,13 @@ The backends share a common interface:
 
 Loads the assembly specified by `assemblyPath`, sets the base search directory to `baseDir`
 
-`enableDebug` is supported on Windows only (it's ignored on other platforms). It will spawn a console via `AllocConsole` if true
-
-if compiled with -DLAUNCH_DEBUGGER, the JIT debugger will also be invoked (still a Windows only feature)
+`enableDebug` is supported on Windows only (it's ignored on other platforms). If set, the JIT debugger will be invoked
 
 Returns a handle to the loaded assembly
 
-
 - `bool clrDeInit(ASMHANDLE handle)`
 
-Deinitializes the assembly
+Deinitializes the execution environment (depending on the runtime, it might be impossible to call init again after this)
 
 
 - `int runMethod(ASMHANDLE handle, const char *typeName, const char *methodName)`
