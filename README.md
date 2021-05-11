@@ -52,4 +52,4 @@ There are several tools and ways to achieve this, for example
 - Detours (Windows library) has an API to spawn a process with a DLL
 - SetSail (Windows: https://github.com/TheAssemblyArmada/SetSail) can inject a DLL at the EXE Entrypoint
 - LD_PRELOAD (Linux, FreeBSD, and others) can be used to preload a library in a executable (at launch time)
-- ezinject (Linux: https://github.com/smx-smx/ezinject) can inject a library in a running executable
+- ezinject (https://github.com/smx-smx/ezinject) can inject a library in a running executable
