@@ -43,7 +43,7 @@ For this use case, the entry point (`samples/cli/ezdotnet`) **MUST** be compiled
 In other words, you can call code Cygwin code from .NET only if you're starting with a Cygwin process, and you load .NET afterwards.
 Starting from Win32 and calling into Cygwin will **NOT** work
 
-This means that, if you want to build a typical CLI or Windows Forms application with Cygwin features, this application must be started by `ezdotnet` under Cygwin for it to work proeprly.
+This means that, if you want to build a typical CLI or Windows Forms application with Cygwin features, you will need to start the application with `ezdotnet` under Cygwin for it to work properly.
 
 ### Process Injection
 If you're building a shared library, you can inject it into another process to enable it to run .NET code.
