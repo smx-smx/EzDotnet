@@ -12,6 +12,12 @@
 #define DEBUG_MODE 0
 #endif
 
+#ifdef WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
 typedef ASMHANDLE (APICALL *clrInitFunc)(const char *asmPath, const char *asmDir, int enableDebug);
 typedef int (APICALL *runMethodFunc)(
 	ASMHANDLE handle,
@@ -77,7 +83,7 @@ int go(
 	return 0;
 }
 
-int main(int argc, char *argv[]){
+EXPORT int main(int argc, char *argv[]){
     if(argc < 5){
         fprintf(stderr, "Usage: %s [loaderPath] [asmPath] [className] [methodName]\n", argv[0]);
         return 1;
