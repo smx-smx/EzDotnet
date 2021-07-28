@@ -46,8 +46,7 @@ public:
 
 		fx_string assemblyName = (
 			std::filesystem::path(m_asmPath)
-				.filename()
-				.replace_extension()
+				.stem()
 				.string<char_t>()
 		);
 
