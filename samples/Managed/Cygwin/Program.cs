@@ -39,6 +39,9 @@ namespace ManagedSample
 					using (var stdin = new StreamReader(new CygwinInputStream(0)))
 					using (var stdout = new StreamWriter(new CygwinOutputStream(1)))
 					using (var stderr = new StreamWriter(new CygwinOutputStream(2))) {
+						stdout.AutoFlush = true;
+						stderr.AutoFlush = true;
+
 						Console.SetIn(stdin);
 						Console.SetOut(stdout);
 						Console.SetError(stderr);
