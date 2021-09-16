@@ -29,12 +29,17 @@ Deinitializes the execution environment (depending on the runtime, it might be i
 
 Runs the method `methodName` inside the class `typeName` given a `handle` to the assembly loaded with `clrInit`
 
-
 ## Use cases
 
 ### Executable or Library
 You can use this project inside an executable or a library.
 You can either link statically against a single loader or you can load them dynamically, so that the CLR engine to use (CLR/CoreCLR/Mono) can be chosen at runtime
+
+**WARNING**
+
+If you're loading EzDotnet from a dll, avoid loading the CLR from library constructors like `DllMain`. Doing so will cause a deadlock in `clrInit`, as some code in the native hosts will wait for a lock held within `DllMain` (probably by `ntdll.dll` or `kernel32.dll`) to be released.
+
+Make sure you load the CLR from a separate thread, e.g. by using `CreateThread`, so that `DllMain` is free to return and the lock can be freed
 
 ### Cygwin Interop
 This project enables you to call Cygwin code from .NET.
