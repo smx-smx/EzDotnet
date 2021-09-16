@@ -38,7 +38,7 @@ The method is expected to have the following signature:
  ```
 The method visibility is ignored, so you can use `private` to hide the method from other assemblies.
 
-The purpose of `Entry` is to read arguments passed from the native host and call the standard `Main` (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29).
+The purpose of `Entry` is to read arguments passed from the native host and call the standard `Main` (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29)).
 
 Building the C# project as a console application is **strongly recommended**, as doing so will generate the necessary `runtimeconfig` json files, which are required if you're going to use the `CoreCLR` host.
 
