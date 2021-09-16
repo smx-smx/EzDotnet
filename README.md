@@ -29,6 +29,26 @@ Deinitializes the execution environment (depending on the runtime, it might be i
 
 Runs the method `methodName` inside the class `typeName` given a `handle` to the assembly loaded with `clrInit`
 
+The method is expected to have the following signature:
+```csharp
+		private static int Entry(IntPtr args, int sizeBytes) {
+			Main(new string[] { });
+			return 0;
+		}
+ ```
+The method visibility is ignored, so you can use `private` to hide the method from other assemblies.
+
+The purpose of `Entry` is to read arguments passed from the native host and call the standard `Main` (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29).
+
+Building the C# project as a console application is **strongly recommended**, as doing so will generate the necessary `runtimeconfig` json files, which are required if you're going to use the `CoreCLR` host.
+
+If you're going to use `CoreCLR`, you will also need to copy `hostfxr` and place it next to the assembly you want to load.
+It can be found for example in `C:\Program Files (x86)\dotnet\host\fxr\5.0.10\hostfxr.dll` if the target process is 32bit (x86), or `C:\Program Files\dotnet\host\fxr\5.0.10\hostfxr.dll` for 64bit (x64)
+
+Both CoreCLR 3.x and 5.x hosts are supported
+
+
+
 ## Use cases
 
 ### Executable or Library
