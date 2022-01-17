@@ -194,7 +194,7 @@ function getSamplePath($cliMode, $ldrType){
 		}
 	}
 
-	$basePath = __DIR__ . "/samples/Managed/Cygwin/bin/{$buildType}";
+	$basePath = __DIR__ . "/samples/Managed/Sample/bin/{$buildType}";
 	if($ldrType === LdrType::CoreCLRHost){
 		$samplePath = "{$basePath}/net5.0/Cygwin.dll";
 	} else {
@@ -236,7 +236,7 @@ function matrix($a, $b, $c){
 }
 
 function build_managed_sample(){
-	$sample_path = path_concat(__DIR__, 'samples', 'Managed', 'Cygwin');
+	$sample_path = path_concat(__DIR__, 'samples', 'Managed', 'Sample');
 	$argSamplePath = escapeshellarg($sample_path);
 
 	/** build sample in AnyCpu, x86, x64 variants */
