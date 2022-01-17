@@ -7,12 +7,14 @@
 #include <iostream>
 #include <map>
 #include <filesystem>
+#include <variant>
 
 #define DEBUG
 
 #include <fcntl.h>
 
 #include "coreclr_delegates.h"
+#include "nethost.h"
 #include "hostfxr.h"
 
 #include "common/common.h"
@@ -159,6 +161,37 @@ static int loadAndInitHostFxr(
 	return 0;
 }
 
+static std::variant<int, std::string> getHostFxrPath(){
+	size_t hostfxr_pathsz = 0;
+
+	/** todo: statically link in nethost.dll **/
+	LIB_HANDLE nethost = LIB_OPEN("nethost.dll");
+	if(nethost == nullptr){
+		DPRINTF("failed to load nethost\n");
+		return -1;
+	}
+	int (NETHOST_CALLTYPE *_get_hostfxr_path)(
+		char_t * buffer, size_t * buffer_size,
+		const struct get_hostfxr_parameters *parameters
+	) = nullptr;
+	lib_getsym(nethost, "get_hostfxr_path", _get_hostfxr_path);
+	if(get_hostfxr_path == nullptr){
+		DPRINTF("failed to locate get_hostfxr_path");
+		return -2;
+	}
+
+	if(_get_hostfxr_path(nullptr, &hostfxr_pathsz, nullptr) == 0 || hostfxr_pathsz == 0){
+		DPRINTF("failed to get hostfxr path size\n");
+		return -3;
+	}
+	fx_string buf(hostfxr_pathsz, '\0');
+	if(_get_hostfxr_path(buf.data(), &hostfxr_pathsz, nullptr) != 0){
+		DPRINTF("failed to locate hostfxr\n");
+		return -3;
+	}
+	return ::str_conv<char>(buf);
+}
+
 extern "C" {
 	DLLEXPORT const ASMHANDLE APICALL clrInit(
 		const char *assemblyPath, const char *pluginFolder, bool enableDebug
@@ -180,14 +213,17 @@ extern "C" {
 		}
 
 		if (::pfnLoadAssembly == nullptr) {
-			std::filesystem::path hostFxrPath = asmDir / (
-				std::string(LIB_PREFIX) + "hostfxr" + LIB_SUFFIX
-			);
+			auto hostfxr_res = getHostFxrPath();
+			if(std::holds_alternative<int>(hostfxr_res)){
+				DPRINTF("getHostFxrPath failed\n");
+				return NULL_ASMHANDLE;
+			}
+			std::string hostFxrPath = std::get<std::string>(hostfxr_res);
 
 			hostfxr_initialize_for_runtime_config_fn pfnInitializer = nullptr;
 			hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
 
-			std::string hostFxrPathStr = ::to_native_path(hostFxrPath.string());
+			std::string hostFxrPathStr = ::to_native_path(hostFxrPath);
 			fx_string asmDirStr = asmDir.string<char_t>();
 
 			// copy path before removing the extension

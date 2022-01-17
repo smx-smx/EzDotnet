@@ -48,4 +48,10 @@ char *to_windows_path(const char *path);
 
 #ifdef __cplusplus
 }
+
+template<typename T>
+void lib_getsym(LIB_HANDLE handle, const char *symbol, T& pfnOut){
+	pfnOut = reinterpret_cast<T>(LIB_GETSYM(handle, symbol));
+}
+
 #endif
