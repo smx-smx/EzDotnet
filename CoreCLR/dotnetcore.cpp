@@ -13,6 +13,7 @@
 
 #include <fcntl.h>
 
+#include "config.h"
 #include "coreclr_delegates.h"
 #include "nethost.h"
 #include "hostfxr.h"
@@ -164,21 +165,25 @@ static int loadAndInitHostFxr(
 static std::variant<int, std::string> getHostFxrPath(){
 	size_t hostfxr_pathsz = 0;
 
-	/** todo: statically link in nethost.dll **/
-	LIB_HANDLE nethost = LIB_OPEN("nethost.dll");
-	if(nethost == nullptr){
-		DPRINTF("failed to load nethost\n");
-		return -1;
-	}
 	int (NETHOST_CALLTYPE *_get_hostfxr_path)(
 		char_t * buffer, size_t * buffer_size,
 		const struct get_hostfxr_parameters *parameters
 	) = nullptr;
+
+#ifdef NETHOST_STATIC
+	_get_hostfxr_path = &get_hostfxr_path;
+#else
+	LIB_HANDLE nethost = LIB_OPEN(FX_LIBRARY_NAME("nethost"));
+	if(nethost == nullptr){
+		DPRINTF("failed to load nethost\n");
+		return -1;
+	}
 	lib_getsym(nethost, "get_hostfxr_path", _get_hostfxr_path);
-	if(get_hostfxr_path == nullptr){
+	if(_get_hostfxr_path == nullptr){
 		DPRINTF("failed to locate get_hostfxr_path");
 		return -2;
 	}
+#endif
 
 	if(_get_hostfxr_path(nullptr, &hostfxr_pathsz, nullptr) == 0 || hostfxr_pathsz == 0){
 		DPRINTF("failed to get hostfxr path size\n");

@@ -8,7 +8,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE Debug)
 endif(CMAKE_BUILD_TYPE STREQUAL "")
 
-include_directories(${CMAKE_SOURCE_DIR})
+configure_file(config.h.in config.h)
+
+include_directories(
+	${CMAKE_BINARY_DIR}
+	${CMAKE_SOURCE_DIR}
+)
 
 add_subdirectory(common)
 
