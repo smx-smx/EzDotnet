@@ -8,7 +8,7 @@
 
 #include <dlfcn.h>
 #define LIB_HANDLE void *
-#define LIB_OPEN(path) dlopen(path, RTLD_GLOBAL)
+#define LIB_OPEN(path) dlopen(path, RTLD_NOW | RTLD_GLOBAL)
 #define LIB_GETSYM(handle, sym) dlsym(handle, sym)
 
 #endif

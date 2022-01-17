@@ -242,7 +242,9 @@ extern "C" {
 			dotnet_init_params initParams;
 			initParams.hostfxr_path = hostFxrPathStr.c_str();
 			initParams.host_path = asmDirStr.c_str();
-			initParams.dotnet_root = asmDirStr.c_str();	
+			//$FIXME: provide a switch for self contained apps?
+			//initParams.dotnet_root = asmDirStr.c_str();
+			initParams.dotnet_root = nullptr;
 			initParams.runtimeconfig_path = runtimeConfigPathStr.c_str();
 
 			if (loadAndInitHostFxr(initParams, &::pfnClose, &::runtimeHandle, &::pfnLoadAssembly) != 0) {

@@ -55,7 +55,7 @@ int go(
 	#endif
 
 	if(hmod == NULL){
-		fprintf(stderr, "Failed to load %s\n", loaderPath);
+		fprintf(stderr, "Failed to load %s\n", finalLoaderPath);
 		return -1;
 	}
 
