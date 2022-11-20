@@ -19,15 +19,15 @@ Then, add the `Microsoft.NETCore.DotNetAppHost` nuget package, for example via t
 Create a EntryPoint for the native code:
 
 ```csharp
-	namespace ManagedSample
-	{
-		public class EntryPoint {
-			private static int Entry(IntPtr args, int sizeBytes) {
-				Main(new string[] { });
-				return 0;
-			}
+namespace ManagedSample
+{
+	public class EntryPoint {
+		private static int Entry(IntPtr args, int sizeBytes) {
+			Main(new string[] { });
+			return 0;
 		}
 	}
+}
  ```
 
 Note down the fully qualified class name (aka class name including namespace), and the method name. We will need them later in the native code.
@@ -72,10 +72,10 @@ Runs the method `methodName` inside the class `typeName` given a `handle` to the
 
 The method is expected to have the following signature:
 ```csharp
-		private static int Entry(IntPtr args, int sizeBytes) {
-			Main(new string[] { });
-			return 0;
-		}
+private static int Entry(IntPtr args, int sizeBytes) {
+	Main(new string[] { });
+	return 0;
+}
  ```
 The method visibility is ignored, so you can use `private` to hide the method from other assemblies.
 
@@ -89,23 +89,23 @@ All versions of CoreCLR are supported.
 If you decide to use the dynamic helper, you have to resolve the `int main(int argc, char *argv[])` method from `ezdotnet_shared`, and invoke it as following:
 
 ```cpp
-	typedef int (*pfnEzDotNetMain)(int argc, const char *argv[]);
+typedef int (*pfnEzDotNetMain)(int argc, const char *argv[]);
 
-    HMODULE ezDotNet = LoadLibraryA("libezdotnet_shared.dll");
-	pfnEzDotNetMain main = reinterpret_cast<pfnEzDotNetMain>(GetProcAddress(ezDotNet, "main"));
-    const char *argv[] = {
-		// name of the program (argv0) - unused (can be set to anything)
-        "ezdotnet",
-		// path of the .NET backend to use
-        "libcoreclrhost.dll",
-		// path of the .NET assembly to load
-        "bin/x86/Debug/net7.0/publishManagedSample.dll", 
-		// fully qualified class name to invoke
-        "ManagedSample.EntryPoint", 
-		// name of the entry method inside the class (can be private)
-        "Entry" 
-    };
-    pfnMain(5, argv);
+HMODULE ezDotNet = LoadLibraryA("libezdotnet_shared.dll");
+pfnEzDotNetMain main = reinterpret_cast<pfnEzDotNetMain>(GetProcAddress(ezDotNet, "main"));
+const char *argv[] = {
+	// name of the program (argv0) - unused (can be set to anything)
+	"ezdotnet",
+	// path of the .NET backend to use
+	"libcoreclrhost.dll",
+	// path of the .NET assembly to load
+	"bin/x86/Debug/net7.0/publishManagedSample.dll", 
+	// fully qualified class name to invoke
+	"ManagedSample.EntryPoint", 
+	// name of the entry method inside the class (can be private)
+	"Entry" 
+};
+pfnMain(5, argv);
 ```
 
 
