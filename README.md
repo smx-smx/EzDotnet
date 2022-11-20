@@ -9,7 +9,48 @@ There are 3 backends:
 
 The backends expose the same interface so that it's possible to use them with the same APIs.
 
-## API
+## Dotnet project setup
+First, create a new console application:
+> dotnet new console -o ManagedProgram
+
+Then, add the `Microsoft.NETCore.DotNetAppHost` nuget package, for example via the Package Manager console:
+> Install-Package Microsoft.NETCore.DotNetAppHost
+
+Create a EntryPoint for the native code:
+
+```csharp
+	namespace ManagedSample
+	{
+		public class EntryPoint {
+			private static int Entry(IntPtr args, int sizeBytes) {
+				Main(new string[] { });
+				return 0;
+			}
+		}
+	}
+ ```
+
+Note down the fully qualified class name (aka class name including namespace), and the method name. We will need them later in the native code.
+In this example: `ManagedSample.EntryPoint` and `Entry`
+
+**NOTE**: Make sure the .NET project is set to the correct processor architecture that matches your target. It's recommended to set `x86` or `x64` instead of `AnyCPU`
+
+**NOTE**: When building the project, you **MUST** use the `publish` command (either from the IDE of `dotnet publish` from the command line).
+This is important to make sure `nethost.dll` and required dependencies are copied to the output directory.
+
+
+The following paragraph explains how to setup the native part
+
+## Native API
+
+To load a managed assembly, we need to pull the EzDotnet code into our project.
+
+This can be done in one of the following ways:
+- Statically linking against one of the backends: `coreclrhost`, `monohost` or `clrhost`
+- Dynamicaly linking (`dlopen`/`LoadLibrary`)
+- Using the dynamic helper (`ezdotnet_shared`)
+
+
 The backends share a common interface:
 
 - `ASMHANDLE clrInit(const char *assemblyPath, const char *baseDir, bool enableDebug)`
@@ -42,10 +83,30 @@ The purpose of `Entry` is to read arguments passed from the native host and call
 
 Building the C# project as a console application is **strongly recommended**, as doing so will generate the necessary `runtimeconfig` json files, which are required if you're going to use the `CoreCLR` host.
 
-If you're going to use `CoreCLR`, you will also need to copy `hostfxr` and place it next to the assembly you want to load.
-It can be found for example in `C:\Program Files (x86)\dotnet\host\fxr\5.0.10\hostfxr.dll` if the target process is 32bit (x86), or `C:\Program Files\dotnet\host\fxr\5.0.10\hostfxr.dll` for 64bit (x64)
+All versions of CoreCLR are supported.
 
-Both CoreCLR 3.x and 5.x hosts are supported
+
+If you decide to use the dynamic helper, you have to resolve the `int main(int argc, char *argv[])` method from `ezdotnet_shared`, and invoke it as following:
+
+```cpp
+	typedef int (*pfnEzDotNetMain)(int argc, const char *argv[]);
+
+    HMODULE ezDotNet = LoadLibraryA("libezdotnet_shared.dll");
+	pfnEzDotNetMain main = reinterpret_cast<pfnEzDotNetMain>(GetProcAddress(ezDotNet, "main"));
+    const char *argv[] = {
+		// name of the program (argv0) - unused (can be set to anything)
+        "ezdotnet",
+		// path of the .NET backend to use
+        "libcoreclrhost.dll",
+		// path of the .NET assembly to load
+        "bin/x86/Debug/net7.0/publishManagedSample.dll", 
+		// fully qualified class name to invoke
+        "ManagedSample.EntryPoint", 
+		// name of the entry method inside the class (can be private)
+        "Entry" 
+    };
+    pfnMain(5, argv);
+```
 
 
 
