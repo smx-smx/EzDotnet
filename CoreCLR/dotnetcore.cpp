@@ -162,7 +162,7 @@ static int loadAndInitHostFxr(
 	return 0;
 }
 
-static std::variant<int, std::string> getHostFxrPath(){
+static std::variant<int, std::string> getHostFxrPath(std::filesystem::path& base_dir){
 	size_t hostfxr_pathsz = 0;
 
 	int (NETHOST_CALLTYPE *_get_hostfxr_path)(
@@ -170,12 +170,14 @@ static std::variant<int, std::string> getHostFxrPath(){
 		const struct get_hostfxr_parameters *parameters
 	) = nullptr;
 
+	std::string nethost_path = (base_dir / FX_LIBRARY_NAME("nethost")).string();
+
 #ifdef NETHOST_STATIC
 	_get_hostfxr_path = &get_hostfxr_path;
 #else
-	LIB_HANDLE nethost = LIB_OPEN(FX_LIBRARY_NAME("nethost"));
+	LIB_HANDLE nethost = LIB_OPEN(nethost_path.c_str());
 	if(nethost == nullptr){
-		DPRINTF("failed to load nethost\n");
+		DPRINTF("failed to load nethost (path: '%s')\n", nethost_path.c_str());
 		return -1;
 	}
 	lib_getsym(nethost, "get_hostfxr_path", _get_hostfxr_path);
@@ -218,7 +220,7 @@ extern "C" {
 		}
 
 		if (::pfnLoadAssembly == nullptr) {
-			auto hostfxr_res = getHostFxrPath();
+			auto hostfxr_res = getHostFxrPath(asmDir);
 			if(std::holds_alternative<int>(hostfxr_res)){
 				DPRINTF("getHostFxrPath failed\n");
 				return NULL_ASMHANDLE;
