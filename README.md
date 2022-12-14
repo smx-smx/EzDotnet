@@ -38,7 +38,7 @@ In this example: `ManagedSample.EntryPoint` and `Entry`
 **NOTE**: When building the project, you **MUST** use the `publish` command (either from the IDE of `dotnet publish` from the command line).
 This is important to make sure `nethost.dll` and required dependencies are copied to the output directory.
 
-As an alternative, and to have F5 debug working, you can add the following target to the `.csproj` file to copy the nethost on build:
+As an alternative, and to have F5 debug working, you can add the following target to the `.csproj` file to copy the nethost at build time:
 ```xml
     <ItemGroup Condition="'$(OS)'=='Windows_NT'">
         <PackageReference Include="runtime.win-x64.Microsoft.NETCore.DotNetAppHost" Version="7.0.0" />
