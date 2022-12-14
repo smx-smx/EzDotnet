@@ -136,7 +136,7 @@ Make sure you load the CLR from a separate thread, e.g. by using `CreateThread`,
 
 ### Cygwin Interop
 This project enables you to call Cygwin code from .NET.
-For this use case, the entry point (`samples/cli/ezdotnet`) **MUST** be compiled under Cygwin.
+For this use case, the .NET host/loader (for example `samples/cli/ezdotnet`) **MUST** be compiled under Cygwin.
 
 In other words, you can call code Cygwin code from .NET only if you're starting with a Cygwin process, and you load .NET afterwards.
 Starting from Win32 and calling into Cygwin will **NOT** work
