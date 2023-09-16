@@ -63,7 +63,7 @@ Note down the fully qualified class name (the class name including namespace - `
 
 **NOTE**: The `AnyCPU` processor architecture should work normally. In case of issues, change the target processor architecture to match the one used by the native loader.
 
-**NOTE**: When building the project, you **MUST** use a `publish` command like the following (either from the IDE of `dotnet publish` from the command line):
+**NOTE**: When building the project, you **MUST** use a `publish` command like the following (either from the IDE or `dotnet publish` from the command line):
 
 ```bash
 dotnet publish -r linux-x64 --no-self-contained
@@ -93,7 +93,7 @@ A sample dynamic helper is provided to ease the process of loading .NET and call
 
 Otherwise, refer to the [API Documentation](#api-documentation) to use static/dynamic linking yourself.
 
-## Dynamic helper
+### Dynamic helper
 
 If you decide to use the dynamic helper, you have to load `ezdotnet_shared` and resolve the `int main(int argc, char *argv[])` method.
 
@@ -120,11 +120,11 @@ const char *argv[] = {
 pfnMain(5, argv);
 ```
 
-## API documentation
+### API documentation
 
 The backends share a common interface:
 
-### clrInit
+#### clrInit
 
 - `ASMHANDLE clrInit(const char *assemblyPath, const char *baseDir, bool enableDebug)`
 
@@ -135,7 +135,7 @@ Loads the assembly specified by `assemblyPath`, sets the base search directory t
 Returns: a handle to the loaded assembly
 
 
-### clrDeInit
+#### clrDeInit
 - `bool clrDeInit(ASMHANDLE handle)`
 
 Deinitializes the execution environment.
@@ -143,7 +143,7 @@ Deinitializes the execution environment.
 > NOTE: on some runtimes, it might be impossible to call `clrInit` again afterwards
 
 
-### runMethod
+#### runMethod
 - `int runMethod(ASMHANDLE handle, const char *typeName, const char *methodName)`
 
 Runs the method `methodName` inside the class `typeName`, given a `handle` to an assembly loaded by a previous `clrInit` call.
@@ -158,7 +158,7 @@ The C# method is expected to have the following signature:
 ```
 > NOTE: The C# method visibility is ignored, so you can supply `private` methods as well
 
-In this example, the `Entry` function reads arguments passed from the native host, and call the Program `Main` entry  (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29) or the [Project Setup](#c-project-setup)).
+In this example, the `Entry` function reads arguments passed from the native host, and calls the Program `Main` entry  (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29) or the [Project Setup](#c-project-setup)).
 
 ## Use cases
 
