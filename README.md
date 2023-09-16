@@ -158,7 +158,7 @@ The C# method is expected to have the following signature:
 ```
 > NOTE: The C# method visibility is ignored, so you can supply `private` methods as well
 
-In this example, the `Entry` function reads arguments passed from the native host, and call the Program `Main` entry  (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29) or the [Project Setup](#dotnet-project-setup)).
+In this example, the `Entry` function reads arguments passed from the native host, and call the Program `Main` entry  (for details, see the [Cygwin Sample](https://github.com/smx-smx/EzDotnet/blob/6a44ed661c4ea41f74c47698d908117628545717/samples/Managed/Cygwin/Program.cs#L29) or the [Project Setup](#c-project-setup)).
 
 ## Use cases
 
