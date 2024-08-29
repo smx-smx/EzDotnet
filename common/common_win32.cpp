@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <Windows.h>
 
@@ -48,7 +49,9 @@ std::string to_windows_path(const std::string& path){
 
 std::string to_native_path(const std::string& path){
 	if(!::running_in_cygwin){
-		return path;
+		std::string path_cpy = path;
+		std::replace(path_cpy.begin(), path_cpy.end(), '/', '\\');
+		return path_cpy;
 	}
 	return ::to_windows_path(path);
 }

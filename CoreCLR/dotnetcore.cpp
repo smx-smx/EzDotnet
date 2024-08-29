@@ -7,7 +7,9 @@
 #include <iostream>
 #include <map>
 #include <filesystem>
+#include <string>
 #include <variant>
+#include <optional>
 
 #define DEBUG
 
@@ -88,10 +90,10 @@ public:
 };
 
 struct dotnet_init_params {
-	const char *hostfxr_path;
-	const char_t *runtimeconfig_path;
-	const char_t *host_path;
-	const char_t *dotnet_root;
+	std::string hostfxr_path;
+	fx_string host_path;
+	std::optional<fx_string> dotnet_root;
+	fx_string asm_base;
 };
 
 
@@ -104,24 +106,74 @@ static hostfxr_close_fn pfnClose = nullptr;
 static int initHostFxr(
 	struct dotnet_init_params &initParams,
 	hostfxr_initialize_for_runtime_config_fn pfnInitializer,
+	hostfxr_get_runtime_property_value_fn pfnGetRuntimeProperty,
+	hostfxr_set_runtime_property_value_fn pfnSetRuntimeProperty,
 	hostfxr_get_runtime_delegate_fn pfnGetDelegate,
 	load_assembly_and_get_function_pointer_fn *ppfnLoadAssembly
 ) {
+	bool hasRuntimeProperties = pfnGetRuntimeProperty && pfnSetRuntimeProperty;
+
 	struct hostfxr_initialize_parameters hostfxr_params;
 	hostfxr_params.size = sizeof(struct hostfxr_initialize_parameters);
-	hostfxr_params.host_path = initParams.host_path;
-	hostfxr_params.dotnet_root = initParams.dotnet_root;
+	hostfxr_params.host_path = initParams.host_path.c_str();
+	hostfxr_params.dotnet_root = initParams.dotnet_root
+		? (*initParams.dotnet_root).c_str()
+		: nullptr;
 
 	hostfxr_handle runtimeHandle = nullptr;
 	load_assembly_and_get_function_pointer_fn pfnLoadAssembly = nullptr;
 
+	fx_string runtime_config_path = initParams.asm_base + ".runtimeconfig.json"_toNativeString;
+	fx_string deps_file_path = initParams.asm_base + ".deps.json"_toNativeString;
+
 	pfnInitializer(
-		::to_native_fx_path(initParams.runtimeconfig_path).c_str(),
+		runtime_config_path.c_str(),
 		&hostfxr_params, &runtimeHandle
 	);
 	if (runtimeHandle == nullptr) {
 		DPRINTF("Failed to initialize dotnet core\n");
 		return -1;
+	}
+
+	DPRINTF("host_path: %s\n", ::str_conv<char>(initParams.host_path).c_str());
+
+	int result;
+	if(hasRuntimeProperties){
+		if((result=pfnSetRuntimeProperty(
+			runtimeHandle,
+			"APP_CONTEXT_BASE_DIRECTORY"_toNativeString.c_str(),
+			initParams.host_path.c_str()
+		)) != 0){
+			DPRINTF("WARNING: Failed to set APP_CONTEXT_BASE_DIRECTORY\n");
+		}
+		if((result=pfnSetRuntimeProperty(
+			runtimeHandle,
+			"APP_PATHS"_toNativeString.c_str(),
+			initParams.host_path.c_str()
+		)) != 0){
+			DPRINTF("WARNING: Failed to set APP_PATHS\n");
+		}
+
+		const char_t *APP_CONTEXT_DEPS_FILES = nullptr;
+		if((result=pfnGetRuntimeProperty(
+			runtimeHandle,
+			"APP_CONTEXT_DEPS_FILES"_toNativeString.c_str(),
+			&APP_CONTEXT_DEPS_FILES
+		)) == 0){
+			fx_string appContextDepsFiles = (
+				deps_file_path + ";"_toNativeString
+				+ fx_string(APP_CONTEXT_DEPS_FILES)
+			);
+			if((result=pfnSetRuntimeProperty(
+				runtimeHandle,
+				"APP_CONTEXT_DEPS_FILES"_toNativeString.c_str(),
+				appContextDepsFiles.c_str()
+			)) != 0){
+				DPRINTF("WARNING: Failed to set APP_CONTEXT_DEPS_FILES\n");
+			}
+		} else {
+			DPRINTF("WARNING: failed to get APP_CONTEXT_DEPS_FILES\n");
+		}
 	}
 
 	pfnGetDelegate(runtimeHandle, hdt_load_assembly_and_get_function_pointer, (void **)&pfnLoadAssembly);
@@ -140,25 +192,32 @@ static int loadAndInitHostFxr(
 	hostfxr_handle *pHandle,
 	load_assembly_and_get_function_pointer_fn *pfnLoadAssembly
 ) {
-	LIB_HANDLE hostfxr = LIB_OPEN(initParams.hostfxr_path);
+	LIB_HANDLE hostfxr = LIB_OPEN(initParams.hostfxr_path.c_str());
 	if (hostfxr == nullptr) {
-		DPRINTF("dlopen '%s' failed\n", initParams.hostfxr_path);
+		DPRINTF("dlopen '%s' failed\n", initParams.hostfxr_path.c_str());
 		return -1;
 	}
 
 	hostfxr_initialize_for_runtime_config_fn pfnInitializer = nullptr;
 	hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
+	hostfxr_get_runtime_property_value_fn pfnGetRuntimeProperty = nullptr;
+	hostfxr_set_runtime_property_value_fn pfnSetRuntimeProperty = nullptr;
 
 	pfnInitializer = (hostfxr_initialize_for_runtime_config_fn)LIB_GETSYM(hostfxr, "hostfxr_initialize_for_runtime_config");
+	pfnGetRuntimeProperty = (hostfxr_get_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_property_value");
+	pfnSetRuntimeProperty = (hostfxr_set_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_set_runtime_property_value");
 	pfnGetDelegate = (hostfxr_get_runtime_delegate_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_delegate");
 	*ppfnClose = (hostfxr_close_fn)LIB_GETSYM(hostfxr, "hostfxr_close");
 
-	if (*pfnInitializer == nullptr || *pfnGetDelegate == nullptr || *ppfnClose == nullptr) {
+	if (pfnInitializer == nullptr
+		|| pfnGetDelegate == nullptr
+		|| ppfnClose == nullptr
+	) {
 		DPRINTF("failed to resolve libhostfxr symbols\n");
 		return -2;
 	}
 
-	initHostFxr(initParams, pfnInitializer, pfnGetDelegate, pfnLoadAssembly);
+	initHostFxr(initParams, pfnInitializer, pfnGetRuntimeProperty, pfnSetRuntimeProperty, pfnGetDelegate, pfnLoadAssembly);
 	return 0;
 }
 
@@ -170,7 +229,7 @@ static std::variant<int, std::string> getHostFxrPath(std::filesystem::path& base
 		const struct get_hostfxr_parameters *parameters
 	) = nullptr;
 
-	std::string nethost_path = (base_dir / FX_LIBRARY_NAME("nethost")).string();
+	std::string nethost_path = ::to_native_path((base_dir / FX_LIBRARY_NAME("nethost")).string());
 
 #ifdef NETHOST_STATIC
 	_get_hostfxr_path = &get_hostfxr_path;
@@ -209,15 +268,14 @@ extern "C" {
 		initCygwin();
 		#endif
 
-		std::filesystem::path asmPath(assemblyPath);	
-		std::filesystem::path asmDir = asmPath.parent_path();
-		
-		std::string pluginName = asmPath.filename().replace_extension().string();
-		ASMHANDLE handle = str_hash(pluginName.c_str());
-
+		ASMHANDLE handle = str_hash(assemblyPath);
 		if (gPlugins.find(handle) != gPlugins.end()) {
 			return handle;
 		}
+
+		std::filesystem::path asmPath(assemblyPath);	
+		std::filesystem::path asmDir = asmPath.parent_path();
+		std::string asmName = asmPath.filename().replace_extension().string();
 
 		if (::pfnLoadAssembly == nullptr) {
 			auto hostfxr_res = getHostFxrPath(asmDir);
@@ -230,24 +288,33 @@ extern "C" {
 			hostfxr_initialize_for_runtime_config_fn pfnInitializer = nullptr;
 			hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
 
-			std::string hostFxrPathStr = ::to_native_path(hostFxrPath);
-			fx_string asmDirStr = asmDir.string<char_t>();
+			fx_string asmDirStr = ::to_native_fx_path(asmDir.string<char_t>());
 
-			// copy path before removing the extension
-			std::filesystem::path asmBase(asmPath);
-			asmBase.replace_extension();
-
-			fx_string runtimeConfigPathStr = (
-				asmBase.string<char_t>() + ".runtimeconfig.json"_toNativeString
-			);
+			/**
+			 * under cygwin, converting the following path to Windows:
+			 * /cygdrive/c/something
+			 *
+			 * when the following file exists:
+			 * /cygdrive/c/something.exe
+			 *
+			 * will result in C:\something.exe`, which defeats the point of 
+			 * "getting the path to the filename without the extension"
+			 *
+			 * to workaround this, we'll use the dirname and append the stem
+			 */
+			fx_string nat_asmBase = ::to_native_fx_path(
+				asmPath.parent_path().string<char_t>()
+			)
+			+ ::str_conv<char_t>(std::string(1, std::filesystem::path::preferred_separator))
+			+ asmPath.stem().string<char_t>();
 
 			dotnet_init_params initParams;
-			initParams.hostfxr_path = hostFxrPathStr.c_str();
-			initParams.host_path = asmDirStr.c_str();
+			initParams.hostfxr_path = ::to_native_path(hostFxrPath);
+			initParams.host_path = asmDirStr;
+			initParams.asm_base = nat_asmBase;
 			//$FIXME: provide a switch for self contained apps?
 			//initParams.dotnet_root = asmDirStr.c_str();
-			initParams.dotnet_root = nullptr;
-			initParams.runtimeconfig_path = runtimeConfigPathStr.c_str();
+			initParams.dotnet_root = {};
 
 			if (loadAndInitHostFxr(initParams, &::pfnClose, &::runtimeHandle, &::pfnLoadAssembly) != 0) {
 				return NULL_ASMHANDLE;
