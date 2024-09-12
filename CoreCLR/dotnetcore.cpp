@@ -34,14 +34,33 @@ static fx_string to_native_fx_path(fx_string fx_path){
 	std::string native_path = ::to_native_path(path);
 	return ::str_conv<char_t>(native_path);
 }
+
+struct dotnet_ctx {
+	hostfxr_handle runtimeHandle;
+	hostfxr_close_fn pfnClose;
+	hostfxr_initialize_for_dotnet_command_line_fn pfnInitializer;
+	hostfxr_get_runtime_property_value_fn pfnGetRuntimeProperty;
+	hostfxr_set_runtime_property_value_fn pfnSetRuntimeProperty;
+	hostfxr_get_runtime_delegate_fn pfnGetDelegate;
+	get_function_pointer_fn pfnLoadAssembly;
+	std::string hostfxr_path;
+	fx_string host_path;
+	std::optional<fx_string> dotnet_root;
+	fx_string asm_base;
+	fx_string asm_path;
+};
+
 struct PluginInstance {
 private:
-	fx_string m_asmPath;
-	get_function_pointer_fn m_loadAssembly;
+	dotnet_ctx m_ctx;
 public:
 
-	PluginInstance(fx_string asmPath, get_function_pointer_fn pfnLoadAssembly)
-		: m_asmPath(asmPath), m_loadAssembly(pfnLoadAssembly){}
+	PluginInstance(dotnet_ctx ctx)
+		: m_ctx(ctx){}
+
+	int32_t clrDeInit(){
+		return m_ctx.pfnClose(m_ctx.runtimeHandle);
+	}
 
 	int runMethod(
 		const char *typeName, const char *methodName,
@@ -50,7 +69,7 @@ public:
 		fx_string targetMethodName = ::str_conv<char_t>(methodName);
 
 		fx_string assemblyName = (
-			std::filesystem::path(m_asmPath)
+			std::filesystem::path(m_ctx.asm_path)
 				.stem()
 				.string<char_t>()
 		);
@@ -65,11 +84,11 @@ public:
 		component_entry_point_fn pfnEntry = nullptr;
 
 		DPRINTF("Loading '%s', then running %s in %s\n",
-			::str_conv<char>(m_asmPath).c_str(),
+			::str_conv<char>(m_ctx.asm_path).c_str(),
 			::str_conv<char>(targetMethodName).c_str(),
 			::str_conv<char>(targetClassName).c_str()
 		);
-		m_loadAssembly(
+		m_ctx.pfnLoadAssembly(
 			targetClassName.c_str(),
 			targetMethodName.c_str(),
 			NULL, //-> public delegate int ComponentEntryPoint(IntPtr args, int sizeBytes);
@@ -88,49 +107,29 @@ public:
 	}
 };
 
-struct dotnet_init_params {
-	std::string hostfxr_path;
-	fx_string host_path;
-	std::optional<fx_string> dotnet_root;
-	fx_string asm_base;
-	fx_string asm_path;
-};
-
-
 static std::map<ASMHANDLE, PluginInstance> gPlugins;
 
-static hostfxr_handle runtimeHandle = nullptr;
-static get_function_pointer_fn pfnLoadAssembly = nullptr;
-static hostfxr_close_fn pfnClose = nullptr;
-
-static int initHostFxr(
-	struct dotnet_init_params &initParams,
-	hostfxr_initialize_for_dotnet_command_line_fn pfnInitializer,
-	hostfxr_get_runtime_property_value_fn pfnGetRuntimeProperty,
-	hostfxr_set_runtime_property_value_fn pfnSetRuntimeProperty,
-	hostfxr_get_runtime_delegate_fn pfnGetDelegate,
-	get_function_pointer_fn *ppfnLoadAssembly
-) {
-	bool hasRuntimeProperties = pfnGetRuntimeProperty && pfnSetRuntimeProperty;
+static int initHostFxr(dotnet_ctx &ctx) {
+	bool hasRuntimeProperties = ctx.pfnGetRuntimeProperty && ctx.pfnSetRuntimeProperty;
 
 	struct hostfxr_initialize_parameters hostfxr_params;
 	hostfxr_params.size = sizeof(struct hostfxr_initialize_parameters);
-	hostfxr_params.host_path = initParams.host_path.c_str();
-	hostfxr_params.dotnet_root = initParams.dotnet_root
-		? (*initParams.dotnet_root).c_str()
+	hostfxr_params.host_path = ctx.host_path.c_str();
+	hostfxr_params.dotnet_root = ctx.dotnet_root
+		? (*ctx.dotnet_root).c_str()
 		: nullptr;
 
 	hostfxr_handle runtimeHandle = nullptr;
 	get_function_pointer_fn pfnLoadAssembly = nullptr;
 
-	fx_string runtime_config_path = initParams.asm_base + ".runtimeconfig.json"_toNativeString;
-	fx_string deps_file_path = initParams.asm_base + ".deps.json"_toNativeString;
+	fx_string runtime_config_path = ctx.asm_base + ".runtimeconfig.json"_toNativeString;
+	fx_string deps_file_path = ctx.asm_base + ".deps.json"_toNativeString;
 
 	const char_t *argv[] = {
-		initParams.asm_path.c_str(),
+		ctx.asm_path.c_str(),
 		nullptr
 	};
-	pfnInitializer(
+	ctx.pfnInitializer(
 		1, argv,
 		&hostfxr_params, &runtimeHandle
 	);
@@ -139,29 +138,29 @@ static int initHostFxr(
 		return -1;
 	}
 
-	DPRINTF("host_path: %s\n", ::str_conv<char>(initParams.host_path).c_str());
+	DPRINTF("host_path: %s\n", ::str_conv<char>(ctx.host_path).c_str());
 
 #if false
 	int result;
 	if(hasRuntimeProperties){
-		DPRINTF("APP_CONTEXT_BASE_DIRECTORY => %s\n", ::str_conv<char>(initParams.host_path).c_str());
-		if((result=pfnSetRuntimeProperty(
+		DPRINTF("APP_CONTEXT_BASE_DIRECTORY => %s\n", ::str_conv<char>(ctx.host_path).c_str());
+		if((result=ctx.pfnSetRuntimeProperty(
 			runtimeHandle,
 			"APP_CONTEXT_BASE_DIRECTORY"_toNativeString.c_str(),
-			initParams.host_path.c_str()
+			ctx.host_path.c_str()
 		)) != 0){
 			DPRINTF("WARNING: Failed to set APP_CONTEXT_BASE_DIRECTORY\n");
 		}
-		if((result=pfnSetRuntimeProperty(
+		if((result=ctx.pfnSetRuntimeProperty(
 			runtimeHandle,
 			"APP_PATHS"_toNativeString.c_str(),
-			initParams.host_path.c_str()
+			ctx.host_path.c_str()
 		)) != 0){
 			DPRINTF("WARNING: Failed to set APP_PATHS\n");
 		}
 
 		const char_t *APP_CONTEXT_DEPS_FILES = nullptr;
-		if((result=pfnGetRuntimeProperty(
+		if((result=ctx.pfnGetRuntimeProperty(
 			runtimeHandle,
 			"APP_CONTEXT_DEPS_FILES"_toNativeString.c_str(),
 			&APP_CONTEXT_DEPS_FILES
@@ -172,7 +171,7 @@ static int initHostFxr(
 				+ deps_file_path
 			);
 			DPRINTF("APP_CONTEXT_DEPS_FILES => %s\n", ::str_conv<char>(appContextDepsFiles).c_str());
-			if((result=pfnSetRuntimeProperty(
+			if((result=ctx.pfnSetRuntimeProperty(
 				runtimeHandle,
 				"APP_CONTEXT_DEPS_FILES"_toNativeString.c_str(),
 				appContextDepsFiles.c_str()
@@ -185,32 +184,22 @@ static int initHostFxr(
 	}
 #endif
 
-	pfnGetDelegate(runtimeHandle, hdt_get_function_pointer, (void **)&pfnLoadAssembly);
+	ctx.pfnGetDelegate(runtimeHandle, hdt_get_function_pointer, (void **)&pfnLoadAssembly);
 	if (pfnLoadAssembly == nullptr) {
 		DPRINTF("Failed to acquire load_assembly_and_get_function_pointer_fn\n");
 		return -2;
 	}
 
-	*ppfnLoadAssembly = pfnLoadAssembly;
+	ctx.pfnLoadAssembly = pfnLoadAssembly;
 	return 0;
 }
 
-static int loadAndInitHostFxr(
-	dotnet_init_params& initParams,
-	hostfxr_close_fn *ppfnClose,
-	hostfxr_handle *pHandle,
-	get_function_pointer_fn *pfnLoadAssembly
-) {
-	LIB_HANDLE hostfxr = LIB_OPEN(initParams.hostfxr_path.c_str());
+static int loadAndInitHostFxr(dotnet_ctx& ctx) {
+	LIB_HANDLE hostfxr = LIB_OPEN(ctx.hostfxr_path.c_str());
 	if (hostfxr == nullptr) {
-		DPRINTF("dlopen '%s' failed\n", initParams.hostfxr_path.c_str());
+		DPRINTF("dlopen '%s' failed\n", ctx.hostfxr_path.c_str());
 		return -1;
 	}
-
-	hostfxr_initialize_for_dotnet_command_line_fn pfnInitializer = nullptr;
-	hostfxr_get_runtime_delegate_fn pfnGetDelegate = nullptr;
-	hostfxr_get_runtime_property_value_fn pfnGetRuntimeProperty = nullptr;
-	hostfxr_set_runtime_property_value_fn pfnSetRuntimeProperty = nullptr;
 
 	/**
 	 * @brief
@@ -218,21 +207,21 @@ static int loadAndInitHostFxr(
 	 * `hostfxr_initialize_for_runtime_config` means "initialize for component" (library)
 	 * We need to use the "app" API to support more complex assemblies which wouldn't otherwise work with the "library" API.
 	 */
-	pfnInitializer = (hostfxr_initialize_for_dotnet_command_line_fn)LIB_GETSYM(hostfxr, "hostfxr_initialize_for_dotnet_command_line");
-	pfnGetRuntimeProperty = (hostfxr_get_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_property_value");
-	pfnSetRuntimeProperty = (hostfxr_set_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_set_runtime_property_value");
-	pfnGetDelegate = (hostfxr_get_runtime_delegate_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_delegate");
-	*ppfnClose = (hostfxr_close_fn)LIB_GETSYM(hostfxr, "hostfxr_close");
+	ctx.pfnInitializer = (hostfxr_initialize_for_dotnet_command_line_fn)LIB_GETSYM(hostfxr, "hostfxr_initialize_for_dotnet_command_line");
+	ctx.pfnGetRuntimeProperty = (hostfxr_get_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_property_value");
+	ctx.pfnSetRuntimeProperty = (hostfxr_set_runtime_property_value_fn)LIB_GETSYM(hostfxr, "hostfxr_set_runtime_property_value");
+	ctx.pfnGetDelegate = (hostfxr_get_runtime_delegate_fn)LIB_GETSYM(hostfxr, "hostfxr_get_runtime_delegate");
+	ctx.pfnClose = (hostfxr_close_fn)LIB_GETSYM(hostfxr, "hostfxr_close");
 
-	if (pfnInitializer == nullptr
-		|| pfnGetDelegate == nullptr
-		|| ppfnClose == nullptr
+	if (ctx.pfnInitializer == nullptr
+		|| ctx.pfnGetDelegate == nullptr
+		|| ctx.pfnClose == nullptr
 	) {
 		DPRINTF("failed to resolve libhostfxr symbols\n");
 		return -2;
 	}
 
-	initHostFxr(initParams, pfnInitializer, pfnGetRuntimeProperty, pfnSetRuntimeProperty, pfnGetDelegate, pfnLoadAssembly);
+	initHostFxr(ctx);
 	return 0;
 }
 
@@ -288,11 +277,16 @@ extern "C" {
 			return handle;
 		}
 
+		if(gPlugins.size() > 0){
+			// CLR already loaded. multiple runtimes not allowed/tested
+			return NULL_ASMHANDLE;
+		}
+
 		std::filesystem::path asmPath(assemblyPath);	
 		std::filesystem::path asmDir = asmPath.parent_path();
 		std::string asmName = asmPath.filename().replace_extension().string();
 
-		if (::pfnLoadAssembly == nullptr) {
+		if (gPlugins.size() < 1) {
 			auto hostfxr_res = getHostFxrPath(asmDir);
 			if(std::holds_alternative<int>(hostfxr_res)){
 				DPRINTF("getHostFxrPath failed\n");
@@ -323,29 +317,26 @@ extern "C" {
 			+ ::str_conv<char_t>(std::string(1, std::filesystem::path::preferred_separator))
 			+ asmPath.stem().string<char_t>();
 
-			dotnet_init_params initParams;
-			initParams.hostfxr_path = ::to_native_path(hostFxrPath);
-			initParams.host_path = asmDirStr;
-			initParams.asm_base = nat_asmBase;
-			initParams.asm_path = asmPath.string<char_t>();
+			dotnet_ctx ctx;
+			ctx.hostfxr_path = ::to_native_path(hostFxrPath);
+			ctx.host_path = asmDirStr;
+			ctx.asm_base = nat_asmBase;
+			ctx.asm_path = asmPath.string<char_t>();
 			//$FIXME: provide a switch for self contained apps?
-			//initParams.dotnet_root = asmDirStr.c_str();
-			initParams.dotnet_root = {};
+			//ctx.dotnet_root = asmDirStr.c_str();
+			ctx.dotnet_root = {};
 
-			if (loadAndInitHostFxr(initParams, &::pfnClose, &::runtimeHandle, &::pfnLoadAssembly) != 0) {
+			if (loadAndInitHostFxr(ctx) != 0) {
 				return NULL_ASMHANDLE;
 			}
+			gPlugins.emplace(handle, PluginInstance(ctx));
 		}
-
-		gPlugins.emplace(handle, PluginInstance(asmPath.string<char_t>(), ::pfnLoadAssembly));
 		return handle;
 	}
 
 	DLLEXPORT bool APICALL clrDeInit(ASMHANDLE handle) {
-		if (::pfnClose == nullptr || ::runtimeHandle == nullptr) {
-			return false;
-		}
-		::pfnClose(::runtimeHandle);
+		DPRINTF("\n");
+		return gPlugins.at(handle).clrDeInit();
 		return true;
 	}
 
