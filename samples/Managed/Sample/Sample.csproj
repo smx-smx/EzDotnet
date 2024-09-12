@@ -1,11 +1,49 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <NetCoreAppHostVersion>6.0.1</NetCoreAppHostVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net6.0;net472</TargetFrameworks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="6.0.1" />
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="$(NetCoreAppHostVersion)" />
   </ItemGroup>
+
+  <PropertyGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(Platform)'=='x86'
+    and '$(OS)'=='Windows_NT'
+  ">
+    <NetCoreRuntime>runtime.win-x86.Microsoft.NETCore.DotNetAppHost</NetCoreRuntime>
+    <NetHostPath>$(OutDir)runtimes\win-x86\native\nethost.dll</NetHostPath>
+  </PropertyGroup>
+
+    <PropertyGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(Platform)'=='x64'
+    and '$(OS)'=='Windows_NT'
+  ">
+    <NetCoreRuntime>runtime.win-x64.Microsoft.NETCore.DotNetAppHost</NetCoreRuntime>
+    <NetHostPath>runtimes\win-x64\native\nethost.dll</NetHostPath>
+  </PropertyGroup>
+
+
+  <ItemGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(OS)'=='Windows_NT'
+  ">
+    <PackageReference Include="$(NetCoreRuntime)" Version="$(NetCoreAppHostVersion)" />
+  </ItemGroup>
+
+  <Target AfterTargets="Build" Name="CopyNetHost" Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(OS)'=='Windows_NT'
+  ">
+    <Message Importance="high" Text="Copying nethost.dll for $(Platform)" />
+    <Copy SourceFiles="$(OutDir)$(NetHostPath)" DestinationFolder="$(OutDir)" />
+  </Target>
 </Project>

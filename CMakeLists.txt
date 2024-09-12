@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.2)
-
 project(EzNetHost)
 
+enable_testing()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(Dotnet REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
+
+option(BUILD_MANAGED_SAMPLE "Build managed sample" ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE Debug)
