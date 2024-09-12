@@ -26,7 +26,9 @@ function(_find_cygwin_main)
 	endif()
 endfunction(_find_cygwin_main)
 
-_find_cygwin_main()
+if(NOT Cygwin_FOUND)
+	_find_cygwin_main()
+endif()
 find_package_handle_standard_args(Cygwin
 	FOUND_VAR Cygwin_FOUND
 	REQUIRED_VARS Cygwin_ROOT_DIR

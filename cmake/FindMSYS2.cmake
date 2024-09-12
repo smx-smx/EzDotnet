@@ -68,7 +68,9 @@ function(_find_msys2_main)
 	set(MSYS2_ucrt64_FOUND ${_ucrt64_found} PARENT_SCOPE)
 endfunction(_find_msys2_main)
 
-_find_msys2_main()
+if(NOT MSYS2_FOUND)
+	_find_msys2_main()
+endif()
 find_package_handle_standard_args(MSYS2
 	FOUND_VAR MSYS2_FOUND
 	REQUIRED_VARS MSYS2_ROOT_DIR
