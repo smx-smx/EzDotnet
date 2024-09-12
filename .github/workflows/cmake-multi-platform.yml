@@ -62,7 +62,7 @@ jobs:
       uses: msys2/setup-msys2@v2.24.1
       with:
         update: true
-        release: false
+        release: true
         msystem: ${{matrix.sys}}
         install: >-
           mingw-w64-${{matrix.env}}-cmake
@@ -79,7 +79,10 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DMSYS2_ROOT_DIR=C:/msys64
+        -DMSYS2_FOUND=TRUE
+        -DMSYS2_mingw32_FOUND=TRUE
+        -DMSYS2_mingw64_FOUND=TRUE
+        -DMSYS2_ROOT_DIR=D:/a/_temp/msys64
         -S ${{ github.workspace }}/windows_aio
 
     - name: Build
