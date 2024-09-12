@@ -103,13 +103,13 @@ cmake_host_system_information(RESULT NCPU
 ExternalProject_Add(ezdotnet_cygwin64
 	PREFIX ${BDIR_CYGWIN_X64}
 	SOURCE_DIR ${PARENT}
-	CONFIGURE_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue}
-		cmake
-			-S \"$(cygpath -u \"<SOURCE_DIR>\")\"
-			-B \"$(cygpath -u \"<BINARY_DIR>\")\"
-			-G 'Unix Makefiles'
-			-DCMAKE_INSTALL_PREFIX=\"$(cygpath -u \"<INSTALL_DIR>\")\"
-			-DBUILD_MANAGED_SAMPLE=OFF"
+	CONFIGURE_COMMAND ${CMAKE_COMMAND} -E echo
+		${_cygwin_prologue} cmake
+		-S \"$\(cygpath -u \"<SOURCE_DIR>\"\)\"
+		-B \"$\(cygpath -u \"<BINARY_DIR>\"\)\"
+		-G 'Unix Makefiles'
+		-DCMAKE_INSTALL_PREFIX=\"$\(cygpath -u \"<INSTALL_DIR>\"\)\"
+		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_CYGWIN}
 	BUILD_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --build \"$(cygpath -u \"<BINARY_DIR>\")\" -- -j${NCPU}"
 	INSTALL_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --install \"$(cygpath -u \"<BINARY_DIR>\")\""
 )
