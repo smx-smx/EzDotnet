@@ -4,33 +4,16 @@ find_package(MSYS2 REQUIRED COMPONENTS mingw32 mingw64)
 set(MINGW32_ROOT ${MSYS2_ROOT_DIR}/mingw32)
 set(MINGW64_ROOT ${MSYS2_ROOT_DIR}/mingw64)
 
-find_program(CMAKE_MINGW32 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
-find_program(CMAKE_MINGW64 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
 find_program(BASH_CYGWIN bash PATHS ${Cygwin_ROOT_DIR}/bin NO_DEFAULT_PATH REQUIRED)
-find_program(CYGPATH_CYGWIN cygpath PATHS ${Cygwin_ROOT_DIR}/bin NO_DEFAULT_PATH REQUIRED)
 find_program(CYGPATH_MSYS cygpath PATHS ${MSYS2_ROOT_DIR}/usr/bin NO_DEFAULT_PATH REQUIRED)
 find_program(BASH_MSYS2 bash PATHS ${MSYS2_ROOT_DIR}/usr/bin NO_DEFAULT_PATH REQUIRED)
 
 get_filename_component(DOTNET_EXE_DIR "${DOTNET_EXE}" DIRECTORY)
-
 execute_process(
 	COMMAND ${CYGPATH_MSYS} -u "${DOTNET_EXE_DIR}"
 	OUTPUT_VARIABLE DOTNET_EXE_DIR_MSYS
 )
 string(STRIP "${DOTNET_EXE_DIR_MSYS}" DOTNET_EXE_DIR_MSYS)
-
-function(cygpath_unix path result_var)
-    if(CYGWIN)
-        execute_process(
-            COMMAND ${CYGPATH_CYGWIN} -u "${path}"
-            OUTPUT_VARIABLE _out
-        )
-        string(STRIP "${_out}" _out)
-        set(${result_var} "${_out}" PARENT_SCOPE)
-    else()
-        set(${result_var} "${path}" PARENT_SCOPE)
-    endif()
-endfunction()
 
 set(BDIR_MSVC_X86 ${CMAKE_BINARY_DIR}/build_msvc32)
 set(BDIR_MSVC_X64 ${CMAKE_BINARY_DIR}/build_msvc64)
@@ -64,10 +47,6 @@ ExternalProject_Add(ezdotnet_msvc_x64
 )
 # prevent concurrent .NET build
 add_dependencies(ezdotnet_msvc_x64 ezdotnet_msvc_x86)
-
-set(CURRENT_PATH $ENV{PATH})
-# 4 escape layers!
-string(REPLACE ";" "\\\\\\\;" CURRENT_PATH "${CURRENT_PATH}")
 
 set(_msys_prologue
 	"pushd .$<SEMICOLON>"
