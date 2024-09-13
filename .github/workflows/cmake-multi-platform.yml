@@ -79,13 +79,9 @@ jobs:
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-mono
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          6.0.x
+      run: choco install -fy dotnet-6.0-runtime
     - name: Setup dotnet (x86)
-      run: >
-        choco install dotnet-6.0-runtime --x86
+      run: choco install -fy dotnet-6.0-runtime --x86
     - uses: actions/checkout@v4
     #- name: Debugging with vscode
     #  uses: fawazahmed0/action-debug-vscode@v2
