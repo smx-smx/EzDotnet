@@ -32,6 +32,16 @@ find_program(CMAKE_MINGW32 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUI
 find_program(CMAKE_MINGW64 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
 find_program(BASH_CYGWIN bash PATHS ${Cygwin_ROOT_DIR}/bin NO_DEFAULT_PATH REQUIRED)
 find_program(CYGPATH_CYGWIN cygpath PATHS ${Cygwin_ROOT_DIR}/bin NO_DEFAULT_PATH REQUIRED)
+find_program(CYGPATH_MSYS cygpath PATHS ${MSYS2_ROOT_DIR}/usr/bin NO_DEFAULT_PATH REQUIRED)
+find_program(BASH_MSYS2 bash PATHS ${MSYS2_ROOT_DIR}/usr/bin NO_DEFAULT_PATH REQUIRED)
+
+get_filename_component(DOTNET_EXE_DIR "${DOTNET_EXE}" DIRECTORY)
+
+execute_process(
+	COMMAND ${CYGPATH_MSYS} -u "${DOTNET_EXE_DIR}"
+	OUTPUT_VARIABLE DOTNET_EXE_DIR_MSYS
+)
+string(STRIP "${DOTNET_EXE_DIR_MSYS}" DOTNET_EXE_DIR_MSYS)
 
 function(cygpath_unix path result_var)
     if(CYGWIN)
@@ -83,40 +93,53 @@ set(CURRENT_PATH $ENV{PATH})
 # 4 escape layers!
 string(REPLACE ";" "\\\\\\\;" CURRENT_PATH "${CURRENT_PATH}")
 
+set(_msys_prologue
+	"pushd .$<SEMICOLON>"
+	". /etc/profile$<SEMICOLON>"
+	"popd$<SEMICOLON>"
+	"export PATH=\"${DOTNET_EXE_DIR_MSYS}\":\$PATH$<SEMICOLON>"
+)
+
 ExternalProject_Add(ezdotnet_mingw32
 	PREFIX ${BDIR_MINGW_X86}
 	SOURCE_DIR ${PARENT}
-	CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "PATH=${MINGW32_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW32}
+	CONFIGURE_COMMAND
+		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo 
+		${_msys_prologue} cmake
 		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-		-DBUILD_MANAGED_SAMPLE=OFF
+		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_MSYS2}
 	BUILD_COMMAND
-		${CMAKE_COMMAND} -E env "PATH=${MINGW32_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW32}
-		--build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo 
+		${_msys_prologue} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 	INSTALL_COMMAND
-		${CMAKE_COMMAND} -E env "PATH=${MINGW32_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW32}
-		--install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo
+		${_msys_prologue} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 )
 ExternalProject_Add(ezdotnet_mingw64
 	PREFIX ${BDIR_MINGW_X64}
 	SOURCE_DIR ${PARENT}
-	CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "PATH=${MINGW64_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW64}
+	CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo 
+		${_msys_prologue} cmake
 		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-		-DBUILD_MANAGED_SAMPLE=OFF
+		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_MSYS2}
 	BUILD_COMMAND
-		${CMAKE_COMMAND} -E env "PATH=${MINGW64_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW64}
-		--build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+		${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo
+		${_msys_prologue} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 	INSTALL_COMMAND
-		${CMAKE_COMMAND} -E env "PATH=${MINGW64_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW64}
-		--install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+		${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo
+		${_msys_prologue} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 
 )
 
-set(_cygwin_prologue "pushd .$<SEMICOLON>. /etc/profile$<SEMICOLON>popd$<SEMICOLON>")
-
+set(_cygwin_prologue
+	"pushd .$<SEMICOLON>"
+	". /etc/profile$<SEMICOLON>"
+	"popd$<SEMICOLON>"
+)
 cmake_host_system_information(RESULT NCPU
                               QUERY NUMBER_OF_PHYSICAL_CORES)
 
@@ -211,9 +234,19 @@ function(test_target target_cli target_host target_mansample host)
 		if(is_cygwin)
 			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${Cygwin_ROOT_DIR}/bin")
 		elseif(is_mingw32)
-			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${MINGW32_ROOT}/bin")
+			set(_env_ops 
+				"PATH=path_list_prepend:${MINGW32_ROOT}/bin"
+				"MSYSTEM=set:MINGW32"
+				"MINGW_PREFIX=set:/mingw32"
+			)
+			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
 		elseif(is_mingw64)
-			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${MINGW64_ROOT}/bin")
+			set(_env_ops 
+				"PATH=path_list_prepend:${MINGW64_ROOT}/bin"
+				"MSYSTEM=set:MINGW64"
+				"MINGW_PREFIX=set:/mingw64"
+			)
+			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
 		endif()
 	endforeach()
 endfunction(test_target)
