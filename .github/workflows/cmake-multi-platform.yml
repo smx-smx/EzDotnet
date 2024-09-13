@@ -4,9 +4,9 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "ci2" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "ci2" ]
+    branches: [ "master" ]
 
 env:
   build_type: Release
