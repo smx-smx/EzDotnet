@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(EzNetHost)
+project(EzNetHost LANGUAGES C CXX)
 
 enable_testing()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
