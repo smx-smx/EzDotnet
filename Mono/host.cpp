@@ -148,7 +148,7 @@ ASMHANDLE initialize(const std::string& asmPathStr, const std::string& asmDirStr
 	if (!gMonoInitialized) {
 		DPRINTF("initializing mono\n");
 
-		rootDomain = mono_jit_init_version("SharpInj", "v4.0");
+		rootDomain = mono_jit_init_version("SharpInj", "v4.0.30319");
 		if (!rootDomain) {
 			fprintf(stderr, "Failed to initialize mono\n");
 			return NULL_ASMHANDLE;

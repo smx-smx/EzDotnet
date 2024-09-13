@@ -8,3 +8,8 @@ endif()
 
 target_link_libraries(ezdotnet common)
 target_link_libraries(ezdotnet_shared common)
+
+install(TARGETS
+	ezdotnet
+	ezdotnet_shared
+)

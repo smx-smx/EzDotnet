@@ -12,3 +12,5 @@ if(NETHOST_LIBRARY)
 	target_link_libraries(coreclrhost ${NETHOST_LIBRARY})
 	target_compile_options(coreclrhost PRIVATE -DNETHOST_STATIC)
 endif()
+
+install(TARGETS coreclrhost)

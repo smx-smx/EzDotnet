@@ -1,11 +1,77 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <NetCoreAppHostVersion>6.0.33</NetCoreAppHostVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net6.0;net472</TargetFrameworks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="6.0.1" />
+  <!-- FIXME: is there a better way than this? -->
+  <PropertyGroup>
+    <IsWindows Condition="'$(OS)' == 'Windows_NT'">true</IsWindows>
+    <IsWindows Condition="'$(OS)' != 'Windows_NT'">false</IsWindows>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildRuntimeType)' != 'Core'">
+    <IsOSX>false</IsOSX>
+    <IsLinux>false</IsLinux>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildRuntimeType)' == 'Core'">
+    <IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
+    <IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'false'">false</IsOSX>
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'false'">false</IsLinux>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+    <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="$(NetCoreAppHostVersion)" />
   </ItemGroup>
+
+  <PropertyGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(Platform)'=='x64'
+    and $(IsLinux)
+  ">
+    <NetCoreRuntime>runtime.linux-x64.Microsoft.NETCore.DotNetAppHost</NetCoreRuntime>
+    <NetHostPath>$(OutDir)runtimes\linux-x64\native\libnethost.so</NetHostPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(Platform)'=='x86'
+    and $(IsWindows)
+  ">
+    <NetCoreRuntime>runtime.win-x86.Microsoft.NETCore.DotNetAppHost</NetCoreRuntime>
+    <NetHostPath>$(OutDir)runtimes\win-x86\native\nethost.dll</NetHostPath>
+  </PropertyGroup>
+
+    <PropertyGroup Condition="
+    '$(TargetFramework)'=='net6.0'
+    and '$(Platform)'=='x64'
+    and $(IsWindows)
+  ">
+    <NetCoreRuntime>runtime.win-x64.Microsoft.NETCore.DotNetAppHost</NetCoreRuntime>
+    <NetHostPath>runtimes\win-x64\native\nethost.dll</NetHostPath>
+  </PropertyGroup>
+
+  <!--
+  <Target BeforeTargets="Build" Name="PrintInfo">
+    <Message Importance="high" Text="OS: $(OS), Platform: $(Platform)" />
+    <Message Importance="high" Text="Platform: $(Platform)" />
+    <Message Importance="high" Text="IsLinux: $(IsLinux)" />
+    <Message Importance="high" Text="IsWindows: $(IsWindows)" />
+    <Message Importance="high" Text="IsOSX: $(IsOSX)" />
+  </Target>
+  -->
+
+  <ItemGroup Condition="'$(NetCoreRuntime)'!='' and '$(NetCoreAppHostVersion)' != ''">
+    <PackageReference Include="$(NetCoreRuntime)" Version="$(NetCoreAppHostVersion)" />
+  </ItemGroup>
+
+  <Target AfterTargets="Build" Name="CopyNetHost" Condition="'$(NetHostPath)'!=''">
+    <Message Importance="high" Text="Copying $(OutDir)$(NetHostPath) for $(Platform)" />
+    <Copy SourceFiles="$(OutDir)$(NetHostPath)" DestinationFolder="$(OutDir)" />
+  </Target>
 </Project>

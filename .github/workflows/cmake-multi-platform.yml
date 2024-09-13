@@ -1,0 +1,115 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
+name: CMake on multiple platforms
+
+on:
+  push:
+    branches: [ "ci2" ]
+  pull_request:
+    branches: [ "ci2" ]
+
+env:
+  build_type: Release
+
+jobs:
+  build_ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Cache APT Packages
+      uses: awalsh128/cache-apt-pkgs-action@v1.4.2
+      with:
+        packages: >-
+          build-essential
+          gcc g++
+          cmake
+          ninja
+          pkg-config
+          mono-runtime
+          mono-devel
+        version: 1.0
+    - uses: actions/checkout@v4
+    - name: Configure
+      run: >
+        cmake
+        -B ${{ github.workspace }}/build
+        -S ${{ github.workspace }}/test
+        -DCMAKE_BUILD_TYPE=${{ env.build_type }}
+    - name: Build
+      run: >
+        cmake
+        --build ${{ github.workspace }}/build
+        --config ${{ env.build_type }}
+    - name: Test
+      run: >
+        ctest
+        --build-config ${{ env.build_type }}
+        --test-dir ${{ github.workspace }}/build
+        -V
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+    # causes conflict between strawberry perl's gmake and cygwin's make
+    - name: Remove Strawberry Perl from PATH
+      run: |
+        $env:PATH = $env:PATH -replace "C:\\Strawberry\\c\\bin;", ""
+        "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+    - name: Install Cygwin Action
+      uses: cygwin/cygwin-install-action@v4
+      with:
+        add-to-path: false
+        packages: >-
+          make
+          cmake
+          gcc-core
+          gcc-g++
+          pkg-config
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2.24.1
+      with:
+        update: true
+        release: true
+        msystem: MINGW64
+        install: >-
+          mingw-w64-i686-cmake
+          mingw-w64-i686-gcc
+          mingw-w64-i686-ninja
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-mono
+    - name: Setup dotnet
+      run: choco install -fy dotnet-6.0-runtime
+    - name: Setup dotnet (x86)
+      run: choco install -fy dotnet-6.0-runtime --x86
+    - uses: actions/checkout@v4
+    #- name: Debugging with vscode
+    #  uses: fawazahmed0/action-debug-vscode@v2
+    - name: Configure
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: >
+        cmake
+        -B ${{ github.workspace }}/build
+        -S ${{ github.workspace }}/test
+        -DCMAKE_BUILD_TYPE=${{ env.build_type }}
+        -DMSYS2_FOUND=TRUE
+        -DMSYS2_mingw32_FOUND=TRUE
+        -DMSYS2_mingw64_FOUND=TRUE
+        -DMSYS2_ROOT_DIR=D:/a/_temp/msys64
+
+    - name: Build
+      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      run: > 
+        cmake
+        --build ${{ github.workspace }}/build
+        --config ${{ env.build_type }}
+
+    - name: Test
+      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: > 
+        ctest
+        --build-config ${{ env.build_type }}
+        --test-dir ${{ github.workspace }}/build
+        -V

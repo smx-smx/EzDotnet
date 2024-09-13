@@ -68,11 +68,11 @@ namespace ManagedSample
 				Console.WriteLine($"args[{i}] => {args[i]}");
 			}
 
-			Console.WriteLine("Write Something: ");
+			//Console.WriteLine("Write Something: ");
 			Console.Out.Flush();
 
-			string line = Console.ReadLine();
-			Console.WriteLine($"You typed: {line}");
+			//string line = Console.ReadLine();
+			//Console.WriteLine($"You typed: {line}");
 
 			Console.WriteLine("Bye");
 		}
