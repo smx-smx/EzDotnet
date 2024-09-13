@@ -53,19 +53,27 @@ jobs:
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
-        cmake -B ${{ github.workspace }}/build
+        cmake
+        -B ${{ github.workspace }}/build
+        -S ${{ github.workspace }}/windows_aio
         -DCMAKE_BUILD_TYPE=${{ env.build_type }}
         -DMSYS2_FOUND=TRUE
         -DMSYS2_mingw32_FOUND=TRUE
         -DMSYS2_mingw64_FOUND=TRUE
         -DMSYS2_ROOT_DIR=D:/a/_temp/msys64
-        -S ${{ github.workspace }}/windows_aio
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ github.workspace }}/build
+      run: > 
+        cmake
+        --build ${{ github.workspace }}/build
+        --config ${{ env.build_type }}
 
     - name: Test
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ env.build_type }} ${{ github.workspace }}/build
+      run: > 
+        ctest
+        --build-config ${{ env.build_type }}
+        --test-dir ${{ github.workspace }}/build
+        -V
