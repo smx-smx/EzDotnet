@@ -73,9 +73,16 @@ function(test_target target_cli target_host target_mansample host)
 	get_target_property(is_cygwin ${target_cli} TGT_CYGWIN)
 
 	foreach(fwk IN LISTS SAMPLE_DOTNET_FRAMEWORKS)
-		# net4 sample can only be loaded by CLRHost or Mono
-		if(fwk MATCHES "^net4" AND host STREQUAL coreclrhost)
-			continue()
+		if(fwk MATCHES "^net4")
+			if(host STREQUAL coreclrhost)
+				# net4 sample can only be loaded by CLRHost or Mono
+				continue()
+			endif()
+		else() # netcore
+			if(host STREQUAL MonoHost)
+				# FIXME: mono needs an ad-hoc runtime to load NetCore apps
+				continue()
+			endif()
 		endif()
 
 		target_get_mansample(${target_mansample} ${fwk} asm_path)
