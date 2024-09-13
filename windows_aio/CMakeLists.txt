@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.24)
 project(ezdotnet_test NONE)
 enable_testing()
 
+
+set(default_build_type Debug)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+	set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+	# Set the possible values of build type for cmake-gui
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 set(HERE ${CMAKE_CURRENT_LIST_DIR})
 get_filename_component(PARENT ${HERE}/.. ABSOLUTE)
 
@@ -47,20 +56,26 @@ ExternalProject_Add(ezdotnet_msvc_x86
 	SOURCE_DIR ${PARENT}
 	CMAKE_GENERATOR "Visual Studio 17 2022"
 	CMAKE_GENERATOR_PLATFORM Win32
-	CMAKE_ARGS
+	CONFIGURE_COMMAND ${CMAKE_COMMAND}
+		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 		-DBUILD_MANAGED_SAMPLE=ON
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+	INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 )
 ExternalProject_Add(ezdotnet_msvc_x64
 	PREFIX ${BDIR_MSVC_X64}
 	SOURCE_DIR ${PARENT}
 	CMAKE_GENERATOR "Visual Studio 17 2022"
 	CMAKE_GENERATOR_PLATFORM x64
-	CMAKE_ARGS
+	CONFIGURE_COMMAND ${CMAKE_COMMAND}
+		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 		-DBUILD_MANAGED_SAMPLE=ON
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+	INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 )
 # prevent concurrent .NET build
 add_dependencies(ezdotnet_msvc_x64 ezdotnet_msvc_x86)
@@ -79,10 +94,10 @@ ExternalProject_Add(ezdotnet_mingw32
 		-DBUILD_MANAGED_SAMPLE=OFF
 	BUILD_COMMAND
 		${CMAKE_COMMAND} -E env "PATH=${MINGW32_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW32}
-		--build <BINARY_DIR>
+		--build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 	INSTALL_COMMAND
 		${CMAKE_COMMAND} -E env "PATH=${MINGW32_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW32}
-		--install <BINARY_DIR>
+		--install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 )
 ExternalProject_Add(ezdotnet_mingw64
 	PREFIX ${BDIR_MINGW_X64}
@@ -94,10 +109,10 @@ ExternalProject_Add(ezdotnet_mingw64
 		-DBUILD_MANAGED_SAMPLE=OFF
 	BUILD_COMMAND
 		${CMAKE_COMMAND} -E env "PATH=${MINGW64_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW64}
-		--build <BINARY_DIR>
+		--build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 	INSTALL_COMMAND
 		${CMAKE_COMMAND} -E env "PATH=${MINGW64_ROOT}/bin$<SEMICOLON>${CURRENT_PATH}" ${CMAKE_MINGW64}
-		--install <BINARY_DIR>
+		--install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
 
 )
 
@@ -117,8 +132,8 @@ ExternalProject_Add(ezdotnet_cygwin64
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=\"$\(cygpath -u \"<INSTALL_DIR>\"\)\"
 		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_CYGWIN}
-	BUILD_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --build \"$(cygpath -u \"<BINARY_DIR>\")\" -- -j${NCPU}"
-	INSTALL_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --install \"$(cygpath -u \"<BINARY_DIR>\")\""
+	BUILD_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --build \"$(cygpath -u \"<BINARY_DIR>\")\" --config ${CMAKE_BUILD_TYPE} -- -j${NCPU}"
+	INSTALL_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --install \"$(cygpath -u \"<BINARY_DIR>\")\" --config ${CMAKE_BUILD_TYPE}"
 )
 
 set_target_properties(ezdotnet_msvc_x86 PROPERTIES TGT_WIN32 TRUE)
