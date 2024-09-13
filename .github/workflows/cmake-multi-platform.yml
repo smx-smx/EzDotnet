@@ -83,6 +83,9 @@ jobs:
       with:
         dotnet-version: |
           6.0.x
+    - name: Setup dotnet (x86)
+      run: >
+        choco install dotnet-6.0-runtime --x86
     - uses: actions/checkout@v4
     #- name: Debugging with vscode
     #  uses: fawazahmed0/action-debug-vscode@v2
