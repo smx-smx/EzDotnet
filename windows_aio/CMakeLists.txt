@@ -99,39 +99,48 @@ set(_msys_prologue
 	"popd$<SEMICOLON>"
 	"export PATH=\"${DOTNET_EXE_DIR_MSYS}\":\$PATH$<SEMICOLON>"
 )
+set(_msys_prologue_mingw32
+	"export MSYSTEM=MINGW32$<SEMICOLON>"
+	${_msys_prologue}
+)
+set(_msys_prologue_mingw64
+	"export MSYSTEM=MINGW64$<SEMICOLON>"
+	${_msys_prologue}
+)
 
 ExternalProject_Add(ezdotnet_mingw32
 	PREFIX ${BDIR_MINGW_X86}
 	SOURCE_DIR ${PARENT}
 	CONFIGURE_COMMAND
-		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo 
-		${_msys_prologue} cmake
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw32} cmake
 		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_MSYS2}
 	BUILD_COMMAND
-		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo 
-		${_msys_prologue} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw32} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 	INSTALL_COMMAND
-		${CMAKE_COMMAND} -E env "MSYSTEM=mingw32" -- ${CMAKE_COMMAND} -E echo
-		${_msys_prologue} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw32} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 )
 ExternalProject_Add(ezdotnet_mingw64
 	PREFIX ${BDIR_MINGW_X64}
 	SOURCE_DIR ${PARENT}
-	CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo 
-		${_msys_prologue} cmake
+	CONFIGURE_COMMAND
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw64} cmake
 		-S <SOURCE_DIR> -B <BINARY_DIR>
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_MSYS2}
 	BUILD_COMMAND
-		${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo
-		${_msys_prologue} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw64} cmake --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 	INSTALL_COMMAND
-		${CMAKE_COMMAND} -E env "MSYSTEM=mingw64" -- ${CMAKE_COMMAND} -E echo
-		${_msys_prologue} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
+		${CMAKE_COMMAND} -E echo
+		${_msys_prologue_mingw64} cmake --install <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_MSYS2}
 
 )
 
