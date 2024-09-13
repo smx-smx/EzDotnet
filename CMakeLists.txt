@@ -25,14 +25,13 @@ include_directories(
 
 add_subdirectory(common)
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	add_subdirectory(CLRHost)
-else()
-	find_package(PkgConfig REQUIRED)
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
 	pkg_check_modules(MONO mono-2)
-	if(MONO_FOUND)
-		add_subdirectory(Mono)
-	endif()
+endif()
+
+if(MONO_FOUND)
+	add_subdirectory(Mono)
 endif()
 
 add_subdirectory(CoreCLR)

@@ -2,11 +2,10 @@ cmake_minimum_required(VERSION 3.24)
 project(ezdotnet_test NONE)
 enable_testing()
 
-if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	find_package(PkgConfig REQUIRED)
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
 	pkg_check_modules(MONO mono-2)
 endif()
-
 
 set(default_build_type Debug)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
