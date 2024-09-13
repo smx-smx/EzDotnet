@@ -32,7 +32,7 @@ jobs:
       run: >
         cmake
         -B ${{ github.workspace }}/build
-        -S ${{ github.workspace }}
+        -S ${{ github.workspace }}/test
         -DCMAKE_BUILD_TYPE=${{ env.build_type }}
     - name: Build
       run: >
@@ -92,7 +92,7 @@ jobs:
       run: >
         cmake
         -B ${{ github.workspace }}/build
-        -S ${{ github.workspace }}/windows_aio
+        -S ${{ github.workspace }}/test
         -DCMAKE_BUILD_TYPE=${{ env.build_type }}
         -DMSYS2_FOUND=TRUE
         -DMSYS2_mingw32_FOUND=TRUE
