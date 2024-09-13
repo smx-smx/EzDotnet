@@ -94,6 +94,8 @@ EXPORT int main(int argc, char *argv[]){
     const char *methodName = argv[4];
 	int mod_argc = argc - 5;
 	char **mod_argv = (char **)&argv[5];
-	go(loaderPath, asmPath, className, methodName, mod_argc, mod_argv);
+	if(go(loaderPath, asmPath, className, methodName, mod_argc, mod_argv) < 0){
+		return 1;
+	}
 	return 0;
 }

@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.24)
 project(ezdotnet_test NONE)
 enable_testing()
 
+if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(MONO mono-2)
+endif()
+
 
 set(default_build_type Debug)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -15,7 +20,7 @@ set(HERE ${CMAKE_CURRENT_LIST_DIR})
 get_filename_component(PARENT ${HERE}/.. ABSOLUTE)
 
 list(APPEND CMAKE_MODULE_PATH "${PARENT}/cmake")
-find_package(DOTNET REQUIRED)
+find_package(Dotnet REQUIRED)
 include(ExternalProject)
 
 set(SAMPLE_DOTNET_FRAMEWORKS
@@ -54,7 +59,7 @@ function(target_get_host target host out)
 	elseif(is_windows)
 		set(host_filename "${INSTALL_DIR}/bin/${host}.dll")
 	else()
-		set(host_filename "${INSTALL_DIR}/bin/${CMAKE_SHARED_LIBRARY_PREFIX}${host}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+		set(host_filename "${INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${host}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 	endif()
 	set(${out} "${host_filename}" PARENT_SCOPE)
 endfunction()
@@ -102,6 +107,13 @@ function(test_target target_cli target_host target_mansample host)
 	endforeach()
 endfunction(test_target)
 
+define_property(TARGET PROPERTY TGT_CYGWIN BRIEF_DOCS "This project targets Cygwin")
+define_property(TARGET PROPERTY TGT_WIN32 BRIEF_DOCS "This project targets Win32")
+define_property(TARGET PROPERTY TGT_MINGW32 BRIEF_DOCS "This project targets Mingw32")
+define_property(TARGET PROPERTY TGT_MINGW64 BRIEF_DOCS "This project targets Mingw64")
+
 if(WIN32 OR CYGWIN)
 	include(windows.cmake)
+else()
+	include(unix.cmake)
 endif()

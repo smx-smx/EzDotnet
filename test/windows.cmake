@@ -1,14 +1,8 @@
-
 find_package(Cygwin REQUIRED)
 find_package(MSYS2 REQUIRED COMPONENTS mingw32 mingw64)
 
 set(MINGW32_ROOT ${MSYS2_ROOT_DIR}/mingw32)
 set(MINGW64_ROOT ${MSYS2_ROOT_DIR}/mingw64)
-
-define_property(TARGET PROPERTY TGT_CYGWIN BRIEF_DOCS "This project targets Cygwin")
-define_property(TARGET PROPERTY TGT_WIN32 BRIEF_DOCS "This project targets Win32")
-define_property(TARGET PROPERTY TGT_MINGW32 BRIEF_DOCS "This project targets Mingw32")
-define_property(TARGET PROPERTY TGT_MINGW64 BRIEF_DOCS "This project targets Mingw64")
 
 find_program(CMAKE_MINGW32 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
 find_program(CMAKE_MINGW64 cmake PATHS ${MINGW32_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
@@ -186,12 +180,6 @@ test_target(
 	ezdotnet_msvc_x86
 	coreclrhost
 )
-test_target(
-	ezdotnet_mingw32
-	ezdotnet_mingw32
-	ezdotnet_msvc_x86
-	MonoHost
-)
 
 test_target(
 	ezdotnet_mingw64
@@ -199,12 +187,20 @@ test_target(
 	ezdotnet_msvc_x64
 	coreclrhost
 )
-test_target(
-	ezdotnet_mingw64
-	ezdotnet_mingw64
-	ezdotnet_msvc_x64
-	MonoHost
-)
+if(MONO_FOUND)
+	test_target(
+		ezdotnet_mingw32
+		ezdotnet_mingw32
+		ezdotnet_msvc_x86
+		MonoHost
+	)
+	test_target(
+		ezdotnet_mingw64
+		ezdotnet_mingw64
+		ezdotnet_msvc_x64
+		MonoHost
+	)
+endif()
 test_target(
 	ezdotnet_cygwin64
 	ezdotnet_cygwin64
