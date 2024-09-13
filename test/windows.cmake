@@ -139,8 +139,15 @@ ExternalProject_Add(ezdotnet_cygwin64
 		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 		-DCMAKE_INSTALL_PREFIX=\"$\(cygpath -u \"<INSTALL_DIR>\"\)\"
 		-DBUILD_MANAGED_SAMPLE=OFF | cmd /C ${BASH_CYGWIN}
-	BUILD_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --build \"$(cygpath -u \"<BINARY_DIR>\")\" --config ${CMAKE_BUILD_TYPE} -- -j${NCPU}"
-	INSTALL_COMMAND ${BASH_CYGWIN} -c "${_cygwin_prologue} cmake --install \"$(cygpath -u \"<BINARY_DIR>\")\" --config ${CMAKE_BUILD_TYPE}"
+	BUILD_COMMAND ${CMAKE_COMMAND} -E echo
+		${_cygwin_prologue} cmake
+		--build \"$\(cygpath -u \"<BINARY_DIR>\"\)\"
+		--config ${CMAKE_BUILD_TYPE}
+		-- -j${NCPU} | cmd /C ${BASH_CYGWIN}
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E echo
+		${_cygwin_prologue} cmake
+		--install \"$\(cygpath -u \"<BINARY_DIR>\"\)\"
+		--config ${CMAKE_BUILD_TYPE} | cmd /C ${BASH_CYGWIN}
 )
 
 set_target_properties(ezdotnet_msvc_x86 PROPERTIES TGT_WIN32 TRUE)
