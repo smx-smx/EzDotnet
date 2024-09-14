@@ -1,0 +1,33 @@
+env:
+  CIRRUS_CLONE_DEPTH: 1
+  build_type: Release
+
+windows_x64_task:
+  windows_container:
+    dockerfile: .ci/windows/Dockerfile
+    docker_arguments:
+      MSYS_PACKAGES: 
+        mingw-w64-i686-cmake
+        mingw-w64-i686-gcc
+        mingw-w64-i686-ninja
+        mingw-w64-x86_64-cmake
+        mingw-w64-x86_64-gcc
+        mingw-w64-x86_64-ninja
+        mingw-w64-x86_64-mono
+      CYGWIN_PACKAGES:
+        make
+        cmake
+        gcc-core
+        gcc-g++
+        pkg-config
+  configure_script:
+    - cmake -B build -S test
+      -DCMAKE_BUILD_TYPE=%build_type%
+      -DMSYS2_FOUND=TRUE
+      -DMSYS2_mingw32_FOUND=TRUE
+      -DMSYS2_mingw64_FOUND=TRUE
+      -DMSYS2_ROOT_DIR=C:\msys64
+  build_script:
+    - cmake --build build --config %build_type%
+  test_script:
+    - ctest --build-config %build_type% --test-dir build -V
