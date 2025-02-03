@@ -304,6 +304,7 @@ FUNCTION(DOTNET_GET_DEPS _DN_PROJECT arguments)
     if(_DN_FRAMEWORK)
         SET(_DN_BUILD_OPTIONS -f ${_DN_FRAMEWORK})
         SET(_DN_PACK_OPTIONS /p:TargetFrameworks=${_DN_FRAMEWORK})
+        list(APPEND _DN_PUBLISH_OPTIONS -f ${_DN_FRAMEWORK})
     ENDIF()
 
     SET(_DN_IMPORT_PROP ${CMAKE_CURRENT_BINARY_DIR}/${_DN_projname}.imports.props)
