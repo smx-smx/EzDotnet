@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(EzNetHost LANGUAGES C CXX)
 
 enable_testing()
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Dotnet REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -19,8 +19,8 @@ endif()
 configure_file(config.h.in config.h)
 
 include_directories(
-	${CMAKE_BINARY_DIR}
-	${CMAKE_SOURCE_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 add_subdirectory(common)
