@@ -23,7 +23,7 @@ find_package(Dotnet REQUIRED)
 include(ExternalProject)
 
 set(SAMPLE_DOTNET_FRAMEWORKS
-	net6.0
+	net8.0
 	net472
 )
 

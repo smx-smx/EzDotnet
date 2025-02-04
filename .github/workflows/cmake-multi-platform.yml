@@ -13,7 +13,7 @@ env:
 
 jobs:
   build_ubuntu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Cache APT Packages
       uses: awalsh128/cache-apt-pkgs-action@v1.4.3
@@ -79,9 +79,9 @@ jobs:
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-mono
     - name: Setup dotnet
-      run: choco install -fy dotnet-6.0-runtime
+      run: choco install -fy dotnet-8.0-runtime
     - name: Setup dotnet (x86)
-      run: choco install -fy dotnet-6.0-runtime --x86
+      run: choco install -fy dotnet-8.0-runtime --x86
     - uses: actions/checkout@v4
     #- name: Debugging with vscode
     #  uses: fawazahmed0/action-debug-vscode@v2
