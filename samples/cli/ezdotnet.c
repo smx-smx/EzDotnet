@@ -83,7 +83,13 @@ int go(
 	return 0;
 }
 
-EXPORT int main(int argc, char *argv[]){
+#ifdef EZDOTNET_STATIC
+#define MAIN_METHOD_NAME ezdotnet_main
+#else
+#define MAIN_METHOD_NAME main
+#endif
+
+EXPORT int MAIN_METHOD_NAME(int argc, char *argv[]){
     if(argc < 5){
         fprintf(stderr, "Usage: %s [loaderPath] [asmPath] [className] [methodName]\n", argv[0]);
         return 1;

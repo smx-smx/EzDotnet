@@ -22,11 +22,13 @@ extern "C" {
 # define LIB_HANDLE HMODULE
 # define LIB_OPEN(path) LoadLibraryA(path)
 # define LIB_GETSYM(handle, sym) GetProcAddress(handle, sym)
+# define LIB_CLOSE(handle) FreeLibrary(handle)
 #else
 # include <dlfcn.h>
 # define LIB_HANDLE void *
 # define LIB_OPEN(path) dlopen(path, RTLD_GLOBAL)
 # define LIB_GETSYM(handle, sym) dlsym(handle, sym)
+# define LIB_CLOSE(handle) dlclose(handle)
 #endif
 
 #ifdef DEBUG

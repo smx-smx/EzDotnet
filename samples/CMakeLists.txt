@@ -1,4 +1,5 @@
 add_subdirectory(cli)
+add_subdirectory(dynloader)
 if(BUILD_MANAGED_SAMPLE)
 	add_subdirectory(Managed)
 endif()
