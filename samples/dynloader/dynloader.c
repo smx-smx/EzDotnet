@@ -1,7 +1,14 @@
-#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#define INVALID_HANDLE_VALUE NULL
+#endif
+
 
 #include "common/common_win32.h"
 
@@ -43,7 +50,7 @@ int start_dotnet() {
 	}
 
 	LIB_HANDLE ezDotNet = LIB_OPEN(helper_path);
-	if(ezDotNet == nullptr || ezDotNet == INVALID_HANDLE_VALUE){
+	if(ezDotNet == NULL || ezDotNet == INVALID_HANDLE_VALUE){
 		fprintf(stdout, "LoadLibraryA failed\n");
 		return EXIT_FAILURE;
 	}
@@ -71,6 +78,14 @@ void *start_dotnet_thread(void* arg){
 }
 
 void __attribute__((constructor(101))) dll_main() {
+#ifdef _WIN32
+	HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)start_dotnet_thread, NULL, 0, NULL);
+	if (hThread == NULL) {
+		fputs("CreateThread failed\n", stderr);
+		return;
+	}
+	CloseHandle(hThread);
+#else
 	pthread_t tid;
 	if (pthread_create(&tid, NULL, &start_dotnet_thread, NULL) != 0) {
 		fputs("pthread_create() failed\n", stderr);
@@ -79,5 +94,6 @@ void __attribute__((constructor(101))) dll_main() {
 	if (pthread_detach(tid) != 0) {
 		fputs("pthread_detach() failed\n", stderr);
 	}
+#endif
 }
 

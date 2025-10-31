@@ -26,7 +26,7 @@ typedef int (APICALL *runMethodFunc)(
 );
 
 #if defined(WIN32) || defined(__CYGWIN__)
-#include <Windows.h>
+#include <windows.h>
 #define GET_PWD(buf, size) GetCurrentDirectory(size, buf)
 #else
 #include <unistd.h>

@@ -20,7 +20,7 @@
 
 #ifdef _WIN32
 #include <sstream>
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #include "common/common.h"

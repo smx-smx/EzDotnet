@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <vector>
-#include <Windows.h>
+#include <windows.h>
 
 #ifdef __CYGWIN__
 #include <sys/cygwin.h>

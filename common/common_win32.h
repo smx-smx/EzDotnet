@@ -18,7 +18,7 @@ extern "C" {
  *	 Assembly::GetExecutingAssembly()->Location
  * to throw due to invalid characters in the path (likely due to the cygwin path)
  **/
-# include <Windows.h>
+# include <windows.h>
 # define LIB_HANDLE HMODULE
 # define LIB_OPEN(path) LoadLibraryA(path)
 # define LIB_GETSYM(handle, sym) GetProcAddress(handle, sym)
