@@ -195,6 +195,7 @@ static int initHostFxr(dotnet_ctx &ctx) {
 }
 
 static int loadAndInitHostFxr(dotnet_ctx& ctx) {
+	DPRINTF("loading '%s'\n", ctx.hostfxr_path.c_str());
 	LIB_HANDLE hostfxr = LIB_OPEN(ctx.hostfxr_path.c_str());
 	if (hostfxr == nullptr) {
 		DPRINTF("dlopen '%s' failed\n", ctx.hostfxr_path.c_str());
@@ -262,6 +263,14 @@ static std::variant<int, std::string> getHostFxrPath(std::filesystem::path& base
 	return ::str_conv<char>(buf);
 }
 
+static constexpr char native_path_separator(){
+	#ifdef __CYGWIN__
+	return '\\';
+	#else
+	return std::filesystem::path::preferred_separator;
+	#endif
+}
+
 extern "C" {
 	DLLEXPORT const ASMHANDLE APICALL clrInit(
 		const char *assemblyPath, const char *pluginFolder, bool enableDebug
@@ -270,6 +279,11 @@ extern "C" {
 
 		#if defined(WIN32) || defined(__CYGWIN__)
 		initCygwin();
+		#endif
+
+		char nativePathSep;
+		#ifdef __CYGWIN__
+		nativePathSep = '\\';
 		#endif
 
 		ASMHANDLE handle = str_hash(assemblyPath);
@@ -314,7 +328,7 @@ extern "C" {
 			fx_string nat_asmBase = ::to_native_fx_path(
 				asmPath.parent_path().string<char_t>()
 			)
-			+ ::str_conv<char_t>(std::string(1, std::filesystem::path::preferred_separator))
+			+ ::str_conv<char_t>(std::string(1, native_path_separator()))
 			+ asmPath.stem().string<char_t>();
 
 			dotnet_ctx ctx;
