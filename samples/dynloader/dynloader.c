@@ -77,7 +77,13 @@ void *start_dotnet_thread(void* arg){
 	return (void *)(uintptr_t)start_dotnet();
 }
 
-void __attribute__((constructor(101))) dll_main() {
+#ifdef _WIN32
+#define DLL_CTOR
+#else
+#define DLL_CTOR __attribute__((constructor(101)))
+#endif
+
+void DLL_CTOR dll_main() {
 #ifdef _WIN32
 	HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)start_dotnet_thread, NULL, 0, NULL);
 	if (hThread == NULL) {
@@ -97,3 +103,16 @@ void __attribute__((constructor(101))) dll_main() {
 #endif
 }
 
+
+#ifdef _WIN32
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,
+    DWORD fdwReason,
+    LPVOID lpvReserved
+){
+    if(fdwReason == DLL_PROCESS_ATTACH){
+        dll_main();
+    }
+    return TRUE;
+}
+#endif
