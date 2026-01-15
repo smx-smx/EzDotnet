@@ -110,7 +110,7 @@ const char *argv[] = {
 	// path of the .NET backend to use
 	"libcoreclrhost.dll",
 	// path of the .NET assembly to load
-	"bin/x86/Debug/net7.0/publishManagedSample.dll", 
+	"bin/x86/Debug/net7.0/publish/ManagedSample.dll",
 	// fully qualified class name to invoke
 	"ManagedSample.EntryPoint", 
 	// name of the entry method inside the class (can be private)
