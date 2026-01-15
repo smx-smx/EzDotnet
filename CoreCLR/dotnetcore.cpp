@@ -74,6 +74,8 @@ public:
 				.string<char_t>()
 		);
 
+		fx_string nativeAsmPath = ::to_native_fx_path(m_ctx.asm_path);
+
 		// HelloWorld.EntryPoint,HelloWorld <-- namespace.type, assembly
 		fx_string targetClassName = (
 			::str_conv<char_t>(typeName)
@@ -84,7 +86,7 @@ public:
 		component_entry_point_fn pfnEntry = nullptr;
 
 		DPRINTF("Loading '%s', then running %s in %s\n",
-			::str_conv<char>(m_ctx.asm_path).c_str(),
+			::str_conv<char>(nativeAsmPath).c_str(),
 			::str_conv<char>(targetMethodName).c_str(),
 			::str_conv<char>(targetClassName).c_str()
 		);
@@ -125,8 +127,10 @@ static int initHostFxr(dotnet_ctx &ctx) {
 	fx_string runtime_config_path = ctx.asm_base + ".runtimeconfig.json"_toNativeString;
 	fx_string deps_file_path = ctx.asm_base + ".deps.json"_toNativeString;
 
+	fx_string native_asm_path = ::to_native_fx_path(ctx.asm_path);
+
 	const char_t *argv[] = {
-		ctx.asm_path.c_str(),
+		native_asm_path.c_str(),
 		nullptr
 	};
 	ctx.pfnInitializer(
