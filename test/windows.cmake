@@ -135,38 +135,70 @@ set_target_properties(ezdotnet_mingw32 PROPERTIES TGT_MINGW32 TRUE)
 set_target_properties(ezdotnet_mingw64 PROPERTIES TGT_MINGW64 TRUE)
 set_target_properties(ezdotnet_cygwin64 PROPERTIES TGT_CYGWIN TRUE)
 
+# NOTE: ManagedSample is compiled only for the following targets,
+# since it's useless to build it for every compiler combination:
+# - ezdotnet_msvc_x86 -> corresponds to .NET x86
+# - ezdotnet_msvc_x86 -> corresponds to .NET x64
+#
+# both builds are multi-framework, i.e targeting both .NET Framework and .NET Core
+# the framework to use is chosen by the last argument, the host
 
+## MSVC
+
+# msvc x86 + .NET Framework
 test_target(
 	ezdotnet_msvc_x86
 	ezdotnet_msvc_x86
 	ezdotnet_msvc_x86
 	CLRHost
 )
+# msvc x86 + .NET Core
 test_target(
 	ezdotnet_msvc_x86
 	ezdotnet_msvc_x86
 	ezdotnet_msvc_x86
 	coreclrhost
 )
+# msvc x86 + Mono (.NET Core)
+test_target(
+	ezdotnet_msvc_x86
+	ezdotnet_msvc_x86
+	ezdotnet_msvc_x86
+	MonoCoreClr
+)
+# msvc x64 + .NET Framework
 test_target(
 	ezdotnet_msvc_x64
 	ezdotnet_msvc_x64
 	ezdotnet_msvc_x64
 	CLRHost
 )
+# msvc x64 + .NET Core
 test_target(
 	ezdotnet_msvc_x64
 	ezdotnet_msvc_x64
 	ezdotnet_msvc_x64
 	coreclrhost
 )
+# msvc x64 + Mono (.NET Core)
+test_target(
+	ezdotnet_msvc_x64
+	ezdotnet_msvc_x64
+	ezdotnet_msvc_x64
+	MonoCoreClr
+)
+
+## Mingw
+## NOTE: Mingw doesn't support C++/CLI, so we cannot use .NET Framework here
+
+# mingw32 + .NET Core
 test_target(
 	ezdotnet_mingw32
 	ezdotnet_mingw32
 	ezdotnet_msvc_x86
 	coreclrhost
 )
-
+# mingw64 + .NET Core
 test_target(
 	ezdotnet_mingw64
 	ezdotnet_mingw64
@@ -174,12 +206,14 @@ test_target(
 	coreclrhost
 )
 if(MONO_FOUND)
+	# mingw32 + Mono (.NET Framework)
 	test_target(
 		ezdotnet_mingw32
 		ezdotnet_mingw32
 		ezdotnet_msvc_x86
 		MonoHost
 	)
+	# mingw64 + Mono (.NET Framework)
 	test_target(
 		ezdotnet_mingw64
 		ezdotnet_mingw64
@@ -187,15 +221,42 @@ if(MONO_FOUND)
 		MonoHost
 	)
 endif()
+# mingw32 + Mono (.NET Core)
+test_target(
+	ezdotnet_mingw32
+	ezdotnet_mingw32
+	ezdotnet_msvc_x86
+	MonoCoreClr
+)
+# mingw64 + Mono (.NET Core)
+test_target(
+	ezdotnet_mingw64
+	ezdotnet_mingw64
+	ezdotnet_msvc_x64
+	MonoCoreClr
+)
+
+## Cygwin
+## NOTE: Cygwin doesn't support C++/CLI, so we cannot use .NET Framework here
+
+# cygwin64 + .NET Core
 test_target(
 	ezdotnet_cygwin64
 	ezdotnet_cygwin64
 	ezdotnet_msvc_x64
 	coreclrhost
 )
+# cygwin64 + .NET Framework
 test_target(
 	ezdotnet_cygwin64
 	ezdotnet_msvc_x64
 	ezdotnet_msvc_x64
 	CLRHost
+)
+# cygwin64 + Mono (.NET Core)
+test_target(
+	ezdotnet_cygwin64
+	ezdotnet_msvc_x64
+	ezdotnet_msvc_x64
+	MonoCoreClr
 )

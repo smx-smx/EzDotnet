@@ -20,3 +20,10 @@ if(MONO_FOUND)
 		MonoHost
 	)
 endif()
+
+test_target(
+	ezdotnet
+	ezdotnet
+	ezdotnet
+	MonoCoreClr
+)

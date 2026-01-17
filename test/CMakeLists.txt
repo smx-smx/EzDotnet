@@ -51,14 +51,21 @@ function(target_get_host target host out)
 	get_target_property(is_windows ${target} TGT_WIN32)
 	get_target_property(is_cygwin ${target} TGT_CYGWIN)
 
-	if(is_cygwin)
-		set(host_filename "${INSTALL_DIR}/bin/cyg${host}.dll")
-	elseif(is_mingw32 OR is_mingw64)
-		set(host_filename "${INSTALL_DIR}/bin/lib${host}.dll")
-	elseif(is_windows)
-		set(host_filename "${INSTALL_DIR}/bin/${host}.dll")
+	if(host STREQUAL MonoCoreClr)
+		# HACK, due to project name != dll name
+		set(dll_name "MonoHost_CoreClr")
 	else()
-		set(host_filename "${INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${host}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+		set(dll_name "${host}")
+	endif()
+
+	if(is_cygwin)
+		set(host_filename "${INSTALL_DIR}/bin/cyg${dll_name}.dll")
+	elseif(is_mingw32 OR is_mingw64)
+		set(host_filename "${INSTALL_DIR}/bin/lib${dll_name}.dll")
+	elseif(is_windows)
+		set(host_filename "${INSTALL_DIR}/bin/${dll_name}.dll")
+	else()
+		set(host_filename "${INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${dll_name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 	endif()
 	set(${out} "${host_filename}" PARENT_SCOPE)
 endfunction()
@@ -66,6 +73,7 @@ endfunction()
 function(test_target target_cli target_host target_mansample host)
 	target_get_cli(${target_cli} cli_path)
 	target_get_host(${target_host} ${host} host_path)
+	cmake_path(GET host_path PARENT_PATH host_dir)
 	
 	get_target_property(is_mingw32 ${target_cli} TGT_MINGW32)
 	get_target_property(is_mingw64 ${target_cli} TGT_MINGW64)
@@ -73,13 +81,13 @@ function(test_target target_cli target_host target_mansample host)
 
 	foreach(fwk IN LISTS SAMPLE_DOTNET_FRAMEWORKS)
 		if(fwk MATCHES "^net4")
-			if(host STREQUAL coreclrhost)
+			if(host STREQUAL coreclrhost OR host STREQUAL MonoCoreClr)
 				# net4 sample can only be loaded by CLRHost or Mono
 				continue()
 			endif()
 		else() # netcore
 			if(host STREQUAL MonoHost)
-				# FIXME: mono needs an ad-hoc runtime to load NetCore apps
+				# Mono host does not support CoreCLR (but MonoCoreClr does)
 				continue()
 			endif()
 		endif()
@@ -93,17 +101,30 @@ function(test_target target_cli target_host target_mansample host)
 				ManagedSample.EntryPoint Entry
 				arg1 arg2 arg3 arg4 arg5
 		)
+
+		set(_env_ops "")
+		if(host STREQUAL MonoCoreClr)
+			list(APPEND _env_ops
+				# set MONO_PATH to point to the published framework directory
+				"MONO_PATH=path_list_append:${host_dir}/publish-monocoreclr"
+			)
+			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
+		endif()
+
 		if(is_cygwin)
-			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${Cygwin_ROOT_DIR}/bin")
+			list(APPEND _env_ops
+				"PATH=path_list_prepend:${Cygwin_ROOT_DIR}/bin"
+			)
+			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
 		elseif(is_mingw32)
-			set(_env_ops 
+			list(APPEND _env_ops
 				"PATH=path_list_prepend:${MINGW32_ROOT}/bin"
 				"MSYSTEM=set:MINGW32"
 				"MINGW_PREFIX=set:/mingw32"
 			)
 			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
 		elseif(is_mingw64)
-			set(_env_ops 
+			list(APPEND _env_ops
 				"PATH=path_list_prepend:${MINGW64_ROOT}/bin"
 				"MSYSTEM=set:MINGW64"
 				"MINGW_PREFIX=set:/mingw64"

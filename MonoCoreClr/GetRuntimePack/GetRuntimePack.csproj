@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- use the current platform RID, unless overridden -->
+    <!-- <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier> -->
+  </PropertyGroup>
+
+  <!-- This plus a non-empty $(RuntimeIdentifier) are enough to choose Mono -->
+  <PropertyGroup>
+    <UseMonoRuntime>true</UseMonoRuntime>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+  </ItemGroup>
+
+  <Target Name="EchoRuntimeLocation" AfterTargets="ResolveFrameworkReferences">
+    <ItemGroup>
+      <ProbablyMono
+        Include="@(ResolvedRuntimePack)"
+        Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
+    </ItemGroup>
+    <Error
+      Condition="@(ProbablyMono->Count()) != 1"
+      Text="Expected to get exactly one Microsoft.NETCore.App.Mono resolved runtime pack, got @(ProbablyMono->Count())" />
+    <PropertyGroup>
+      <LikelyMono>@(ProbablyMono)</LikelyMono>
+      <MonoRuntimeDir>$([System.IO.Path]::Combine(%(ProbablyMono.PackageDirectory), runtimes, $(RuntimeIdentifier)))</MonoRuntimeDir>
+    </PropertyGroup>
+    <Error
+      Condition="!$(LikelyMono.Contains('Microsoft.NETCore.App.Runtime.Mono'))"
+      Text="Expected '@(ProbablyMono)' to include 'Microsoft.NETCore.App.Runtime.Mono' in the name." />
+    <Message Importance="High" Text="The runtime pack %(ProbablyMono.Identity) is in: %(ProbablyMono.PackageDirectory)"/>
+    <WriteLinesToFile File="$(OutputPath)runtime-pack-dir.txt" Lines="$(MonoRuntimeDir)" Overwrite="true" />
+  </Target>
+
+</Project>

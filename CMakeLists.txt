@@ -45,5 +45,6 @@ if(MONO_FOUND AND NOT IS_MSVC)
 	add_subdirectory(Mono)
 endif()
 
+add_subdirectory(MonoCoreClr)
 add_subdirectory(CoreCLR)
 add_subdirectory(samples)
