@@ -1,12 +1,14 @@
 # EzDotNet
-Load a C# assembly inside a native executable
+Libraries and tools to easily load and run managed .NET assemblies from C/C++ code.
 
 ## Project structure:
-There are 3 backends:
-- CLRHost for Windows (.NET Framework v4.x)
-- MonoHost for any platform supporting Mono (Windows/macOS/Linux/etc...)
-- CoreCLR for platforms supporting dotnet core
-- MonoCoreClr for any platform supporting Mono (Windows/macOS/Linux/etc...) - see [Microsoft.NETCore.App.Runtime.Mono](https://www.nuget.org/packages?page=2&q=Microsoft.NETCore.App.Runtime.Mono&sortBy=relevance)
+EzDotnet implements hosts for the following runtimes:
+| Name | Runtime | OS |
+|------|---------|----|
+| CLRHost | .NET Framework v4.x | Windows only |
+| MonoHost | [mono](https://github.com/mono/mono) / [wine-mono](https://gitlab.winehq.org/mono/mono) | Multi-Platform |
+| CoreCLR | [.NET Core](https://dotnet.microsoft.com/en-us/download) | Multi-Platform |
+| MonoCoreClr | [.NET Core Mono](https://github.com/dotnet/runtime/tree/eb1c0ab314ef67bc31d85a5bee8a9a36fca84b93/src/mono) | Multi-Platform, see [Microsoft.NETCore.App.Runtime.Mono](https://www.nuget.org/packages?page=2&q=Microsoft.NETCore.App.Runtime.Mono&sortBy=relevance) |
 
 The backends expose the same interface so that it's possible to swap them while keeping the same code.
 
@@ -108,15 +110,15 @@ Usage: ezdotnet [loaderPath] [asmPath] [className] [methodName]
 ```
 
 where:
-- `loaderPath`: the path to one of the .NET Hosts/backends you wish to use (also built as part of EzDotNet)
-- `asmPath`: the full path to the published Managed assembly you wish to load (obtained by `dotnet publish`)
+- `loaderPath`: the path to one of the .NET Hosts/backends you wish to use (built as part of EzDotNet)
+- `asmPath`: the full path to the published Managed assembly you wish to load (the output of `dotnet publish`)
 - `className`: the fully qualified class name which contains the EntryPoint method (including the Namespace)
 - `methodName`: name of the EntryPoint method within the class
 
 
 ### Dynamic helper
 
-If you decide to use the dynamic helper, you have to load `ezdotnet_shared` and resolve the `int main(int argc, char *argv[])` method.
+If you decide to use the dynamic helper, you have to load `ezdotnet_shared` and resolve the `int main(int argc, char *argv[])` method (via `dlsym` or `GetProcAddress`).
 
 Refer ot the following sample for details:
 
@@ -236,9 +238,9 @@ The resulting files are only required to build `MonoCoreClr` and are not needed 
 5. Besides `coreclr.dll`, we also need to copy:
 - The other native libraries used by Mono (`hostfxr`, `hostpolicy`, `System.Private.CoreLib`, etc.), which are part of the Runtime Pack
 - The compiled framework, which also includes Mono-specific Managed assemblies such as `System.Runtime`
-CMake performs all of this with a custom install script. You need to run `cmake --install` to invoke it.
 
-With all this done, the final structure of the `bin` folder should look like this (example for Windows):
+CMake performs all of this with a custom install script, which you can invoke by running `cmake --install`.
+The final structure of the `bin` folder should then look like this (example for Windows):
 - `ezdotnet.exe`
 - `MonoHost_CoreClr.dll`
 - `coreclr.dll`
