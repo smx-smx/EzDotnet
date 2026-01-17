@@ -50,14 +50,25 @@ int go(
 
 	void *hmod = LIB_OPEN(finalLoaderPath);
 
-	#ifdef __CYGWIN__
-	free(finalLoaderPath);
+	#ifdef _WIN32
+	UINT oldMode = SetErrorMode(0);
 	#endif
 
 	if(hmod == NULL){
 		fprintf(stderr, "Failed to load %s\n", finalLoaderPath);
+		#ifdef __CYGWIN__
+		free(finalLoaderPath);
+		#endif
 		return -1;
 	}
+
+	#ifdef __CYGWIN__
+	free(finalLoaderPath);
+	#endif
+
+	#ifdef _WIN32
+	SetErrorMode(oldMode);
+	#endif
 
 	fprintf(stderr, "Handle: %p\n", hmod);
 	clrInitFunc clrInit = (clrInitFunc)LIB_GETSYM(hmod, "clrInit");
