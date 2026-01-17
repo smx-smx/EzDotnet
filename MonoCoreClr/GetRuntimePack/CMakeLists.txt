@@ -10,7 +10,7 @@ if(MSVC)
 		NAMES dumpbin
 		HINTS ${_compiler_dir}
 		REQUIRED)
-else()
+elseif(WIN32 OR CYGWIN)
 	find_program(DLLTOOL_EXE dlltool REQUIRED)
 endif()
 
@@ -176,13 +176,13 @@ add_dependencies(gen_runtime gen_runtime_libs)
 ## step 3: generate coreclr import library
 set(coreclr_prefix ${CMAKE_IMPORT_LIBRARY_PREFIX}coreclr)
 
+if(MINGW OR CYGWIN)
+	set(coreclr_dll_file ${LOCAL_INSTALL_PREFIX}/native/coreclr${CMAKE_SHARED_LIBRARY_SUFFIX})
+else()
+	set(coreclr_dll_file ${LOCAL_INSTALL_PREFIX}/native/${CMAKE_SHARED_LIBRARY_PREFIX}coreclr${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
+
 if(WIN32 OR CYGWIN)
-	if(MINGW OR CYGWIN)
-		set(coreclr_dll_file ${LOCAL_INSTALL_PREFIX}/native/coreclr${CMAKE_SHARED_LIBRARY_SUFFIX})
-	else()
-		set(coreclr_dll_file ${LOCAL_INSTALL_PREFIX}/native/${CMAKE_SHARED_LIBRARY_PREFIX}coreclr${CMAKE_SHARED_LIBRARY_SUFFIX})
-	endif()
-	
 	set(coreclr_def_file ${LOCAL_INSTALL_PREFIX}/native/${coreclr_prefix}.def)
 	set(coreclr_lib_file ${LOCAL_INSTALL_PREFIX}/native/${coreclr_prefix}${CMAKE_IMPORT_LIBRARY_SUFFIX})
 
@@ -242,16 +242,26 @@ set(libmono_include_dirs
 add_library(coreclr_libmono-2.0_imported SHARED IMPORTED)
 
 set_target_properties(coreclr_libmono-2.0_imported PROPERTIES
-        IMPORTED_LOCATION ${coreclr_lib_file}
-        IMPORTED_IMPLIB ${coreclr_lib_file}
         INTERFACE_INCLUDE_DIRECTORIES "${libmono_include_dirs}"
 )
+if(WIN32 OR CYGWIN)
+	set_target_properties(coreclr_libmono-2.0_imported PROPERTIES
+		IMPORTED_LOCATION ${coreclr_lib_file}
+		IMPORTED_IMPLIB ${coreclr_lib_file}
+	)
+else()
+	set_target_properties(coreclr_libmono-2.0_imported PROPERTIES
+		IMPORTED_LOCATION ${coreclr_dll_file}
+	)
+endif()
 
 add_library(coreclr_libmono-2.0 INTERFACE)
 
 target_link_libraries(coreclr_libmono-2.0 INTERFACE coreclr_libmono-2.0_imported)
 if(WIN32 OR CYGWIN)
 	add_dependencies(coreclr_libmono-2.0 gen_coreclr_implib)
+else()
+	add_dependencies(coreclr_libmono-2.0 gen_runtime_libs)
 endif()
 
 ## Targets fixup

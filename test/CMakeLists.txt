@@ -73,7 +73,7 @@ endfunction()
 function(test_target target_cli target_host target_mansample host)
 	target_get_cli(${target_cli} cli_path)
 	target_get_host(${target_host} ${host} host_path)
-	cmake_path(GET host_path PARENT_PATH host_dir)
+	cmake_path(GET cli_path PARENT_PATH cli_bindir)
 	
 	get_target_property(is_mingw32 ${target_cli} TGT_MINGW32)
 	get_target_property(is_mingw64 ${target_cli} TGT_MINGW64)
@@ -106,8 +106,15 @@ function(test_target target_cli target_host target_mansample host)
 		if(host STREQUAL MonoCoreClr)
 			list(APPEND _env_ops
 				# set MONO_PATH to point to the published framework directory
-				"MONO_PATH=path_list_append:${host_dir}/publish-monocoreclr"
+				"MONO_PATH=path_list_append:${cli_bindir}/publish-monocoreclr"
 			)
+			if(UNIX AND NOT CYGWIN)
+				# FIXME: on *nix, the host gets installed under "lib", but coreclr.so is installed in "bin"
+				# and *nix doesn't automatically load libraries next to the executable
+				list(APPEND _env_ops
+					"LD_LIBRARY_PATH=path_list_append:${cli_bindir}"
+				)
+			endif()
 			set_property(TEST ${test_name} PROPERTY ENVIRONMENT_MODIFICATION "${_env_ops}")
 		endif()
 
