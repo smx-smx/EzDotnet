@@ -56,7 +56,7 @@ jobs:
         $env:PATH = $env:PATH -replace "C:\\Strawberry\\c\\bin;", ""
         "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
     - name: Install Cygwin Action
-      uses: cygwin/cygwin-install-action@v4
+      uses: cygwin/cygwin-install-action@v6
       with:
         add-to-path: false
         packages: >-
@@ -67,7 +67,7 @@ jobs:
           pkg-config
           gendef
     - name: Setup MSYS2
-      uses: msys2/setup-msys2@v2.24.1
+      uses: msys2/setup-msys2@v2.30.0
       with:
         update: true
         release: true
