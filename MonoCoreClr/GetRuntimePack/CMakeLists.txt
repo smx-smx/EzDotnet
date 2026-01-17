@@ -154,7 +154,7 @@ install(CODE "
     list(REMOVE_DUPLICATES _file_list)
 
     foreach(f IN LISTS _file_list)
-        if(f MATCHES \"\\.dll\\.a$\")
+        if(f MATCHES \"\\\\.dll\\\\.a$\")
             continue()
         endif()
         file(INSTALL \${f} DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\")
