@@ -109,6 +109,21 @@ jobs:
         --build ${{ github.workspace }}/build
         --config ${{ env.build_type }}
 
+    - name: Fix Permissions
+      # for some unknown reason, Mono will load coreclr.dll with ShareMode = Read|Delete
+      # but the default directory permissions don't seem to allow Modification/Deletion from within cygwin
+      # (again, not sure why since the directory was created by us and should be writable).
+      # this results in the following error when running under cygwin:
+      #
+      # 16: Failed to load D:\a\EzDotnet\EzDotnet\build\build_msvc64\bin\MonoHost_CoreClr.dll
+      # 16/16 Test #16: ezdotnet_cygwin64-ezdotnet_msvc_x64-MonoCoreClr-net8.0 ...***Failed    0.02 sec
+      #
+      # the underlying cause (observed from Process Monitor) is actually ACCESS DENIED
+      # from the underlying IRP_MJ_CREATE call to open coreclr.dll
+      # the workaround is to recursively reset permissions on the build directory before we test
+      run: >
+        icacls ${{ github.workspace }}/build /reset /t
+
     - name: Test
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
