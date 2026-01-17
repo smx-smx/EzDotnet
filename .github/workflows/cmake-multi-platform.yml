@@ -65,6 +65,7 @@ jobs:
           gcc-core
           gcc-g++
           pkg-config
+          gendef
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2.24.1
       with:
