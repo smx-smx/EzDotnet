@@ -80,6 +80,7 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-mono
+          mingw-w64-x86_64-tools
     - name: Setup dotnet
       run: choco install -fy dotnet-8.0-runtime
     - name: Setup dotnet (x86)
