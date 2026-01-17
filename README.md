@@ -6,6 +6,7 @@ There are 3 backends:
 - CLRHost for Windows (.NET Framework v4.x)
 - MonoHost for any platform supporting Mono (Windows/macOS/Linux/etc...)
 - CoreCLR for platforms supporting dotnet core
+- MonoCoreClr for any platform supporting Mono (Windows/macOS/Linux/etc...) - see [Microsoft.NETCore.App.Runtime.Mono](https://www.nuget.org/packages?page=2&q=Microsoft.NETCore.App.Runtime.Mono&sortBy=relevance)
 
 The backends expose the same interface so that it's possible to swap them while keeping the same code.
 
@@ -92,6 +93,26 @@ The following paragraph explains how to setup the native loader:
 A sample dynamic helper is provided to ease the process of loading .NET and calling the entry point of an assembly.
 
 Otherwise, refer to the [API Documentation](#api-documentation) to use static/dynamic linking yourself.
+
+### Command Line
+
+If your C# code uses the Entry Point format from the example project, which expects string arguments, you can use the `ezdotnet` CLI tool to run your assembly.
+
+This also enables you to run a C# program from Cygwin, and interop between Cygwin/C# easily.
+
+You can find the CLI after building and installing the project, under the `bin` folder of `CMAKE_INSTALL_PREFIX`.
+
+The usage is the following:
+```shell
+Usage: ezdotnet [loaderPath] [asmPath] [className] [methodName]
+```
+
+where:
+- `loaderPath`: the path to one of the .NET Hosts/backends you wish to use (also built as part of EzDotNet)
+- `asmPath`: the full path to the published Managed assembly you wish to load (obtained by `dotnet publish`)
+- `className`: the fully qualified class name which contains the EntryPoint method (including the Namespace)
+- `methodName`: name of the EntryPoint method within the class
+
 
 ### Dynamic helper
 
@@ -198,3 +219,44 @@ There are several tools and ways to achieve this, for example:
 #### Universal
 - [ezinject](https://github.com/smx-smx/ezinject) can inject a library in a running executable
 - or use your favorite injector
+
+### Notes for MonoCoreClr
+MonoCoreClr requires a specific Mono runtime pack, which also includes a build of Mono itself "disguised" as `coreclr.[dll|so|dylib]`.
+
+The process for setting up this runtime is the following (mostly performed by the build process and inspired by https://github.com/lambdageek/monovm-embed-sample).
+It's important you read it to understand how it works, and the files involved:
+
+1. CMake heuristically determines the Runtime ID (RID) based on the Operating System and bitness (e.g. `win-x86`)
+2. CMake invokes `GetRuntimePack.csproj` to download the appropriate Runtime Pack, which gets written to the local NuGet cache. We can read this location with a custom MSBuild target, and write it to `runtime-pack-dir.txt` for CMake to use.
+3. CMake reads this location from the txt file, and calls `copy_runtime.cmake` to copy the runtime to a staging directory (relative to the build directory)
+4. Our `MonoCoreClr` host needs to call Mono's embedding APIs within `coreclr.dll/so`, but the runtime doesn't ship `.a` or `.lib` interface libraries that we can link against. \
+This is not a problem for platforms that can directly link against shared libraries, like GNU/Linux, but it's a blocker for Cygwin/Mingw and MSVC, which require dedicated `.dll.a`/`.lib` files.
+For those platforms, we can generate them from the `.dll` by using [gendef](https://www.mingw-w64.org/tools/gendef/) and [dlltool](https://sourceware.org/binutils/docs/binutils/dlltool.html), at build time. \
+The resulting files are only required to build `MonoCoreClr` and are not needed at runtime.
+5. Besides `coreclr.dll`, we also need to copy:
+- The other native libraries used by Mono (`hostfxr`, `hostpolicy`, `System.Private.CoreLib`, etc.), which are part of the Runtime Pack
+- The compiled framework, which also includes Mono-specific Managed assemblies such as `System.Runtime`
+CMake performs all of this with a custom install script. You need to run `cmake --install` to invoke it.
+
+With all this done, the final structure of the `bin` folder should look like this (example for Windows):
+- `ezdotnet.exe`
+- `MonoHost_CoreClr.dll`
+- `coreclr.dll`
+- `hostfxr.dll`, `System.Private.CoreLib.dll`, etc...
+- `publish-monocoreclr`
+
+**IMPORTANT**
+In order for `MonoHost_CoreClr.dll` to work, you **MUST** set the `MONO_PATH` environment variable to point to the `publish-monocoreclr` directory, where the Mono Framework is located.
+
+This must be done **BEFORE** running `ezdotnet` cli.
+
+Failing to do this, or using the non-Mono CoreClr framework, will result in assertion failures and other hard to debug issues due to incompatible runtime libraries.
+
+Example:
+
+```shell
+set MONO_PATH=%CD%\publish-monocoreclr
+ezdotnet.exe MonoHost_CoreClr.dll ^
+%SAMPLE_DIR%\Sample\net8.0\Sample.dllSample.dll ^
+"ManagedSample.EntryPoint" "Entry" "arg1" "arg2" "arg3" "arg4" "arg5"
+```
